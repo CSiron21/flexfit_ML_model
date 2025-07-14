@@ -1,0 +1,7 @@
+tensorflow>=2.8.0
+numpy
+pandas
+tensorflow
+tensorflow-hub
+opencv-python
+scikit-learn
