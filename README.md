@@ -1,61 +1,191 @@
-# MoveNet-Keypoints-Extractor
+# FlexFit ML Pipeline
 
-This project provides a pipeline for extracting human pose keypoints and skeleton images from videos using TensorFlow’s MoveNet, and for training a neural network classifier on the extracted keypoints for exercise recognition or similar tasks.
+A streamlined machine learning pipeline for exercise form analysis using pose estimation with MoveNet and TensorFlow.
 
-## Features
-- Extracts 17 keypoints (x, y, confidence) per frame from videos using MoveNet Thunder.
-- Saves keypoints to CSV files and renders skeleton images as 128x128 grayscale PNGs.
-- Trains a dense neural network on the keypoints CSVs for classification.
-- Exports the trained model as a TFLite file for mobile/edge deployment.
+## 🚀 Quick Start
 
-## Requirements
-- Python 3.7–3.10 recommended
-- Install dependencies:
-  ```bash
-  pip install -r requirements.txt
-  ```
-
-## Usage
-
-### 1. Extract Keypoints and Skeleton Images
-Place your input videos (e.g., MP4 files) in the `dataset/` directory.
-
-Run the keypoint extraction script:
 ```bash
-python movenet_keypoint_exporter.py
+# Run the complete pipeline
+python run.py
+
+# Or use the advanced pipeline with options
+python flexfit_pipeline.py --step extract --force
 ```
-- Keypoints CSVs will be saved to `train_data/` (e.g., `Correct_Deadlift_1_keypoints.csv`).
-- Skeleton images will be saved to `train_data/images/`.
 
-### 2. Train a Classifier on Keypoints
-The classifier uses all `*_keypoints.csv` files in `train_data/`.
-- The label for each frame is parsed from the filename (by default, the prefix before the first underscore, e.g., `Correct` in `Correct_Deadlift_1_keypoints.csv`).
-- **If you want to classify by exercise type (e.g., `Deadlift`), modify the label extraction logic in `cnn_model.py` accordingly.**
+## 📁 Project Structure
 
-Run the training script:
+```
+flexfit_ML_model/
+├── run.py                          # Simple runner script
+├── flexfit_pipeline.py             # Main pipeline
+├── Flexfit_model_design.py         # Model architecture
+├── movenet_keypoint_exporter.py    # Keypoint extraction
+├── data_pipeline.py                # Data processing
+├── pose_training_deployment.py     # Training & deployment
+├── requirements.txt                # Dependencies
+├── README.md                       # This file
+├── dataset/                        # Video dataset
+│   ├── correct/                    # Correct form videos
+│   └── incorrect/                  # Incorrect form videos
+├── keypoints_data/                 # Extracted keypoints
+└── __pycache__/                    # Python cache
+```
+
+## 🎯 Core Features
+
+- **Keypoint Extraction**: Extract 17 body keypoints from videos using MoveNet
+- **CSV Output**: Save keypoints to structured CSV format
+- **TFLite Model**: Create deployable TensorFlow Lite model
+- **Multi-head Architecture**: Form score + joint alignment detection
+
+## 📋 Requirements
+
 ```bash
-python cnn_model.py
+pip install -r requirements.txt
 ```
-- Trains a dense neural network on the keypoints.
-- Exports the model as `keypoints_dense_model.tflite` with label metadata.
 
-## Notes
-- Ensure you have at least two different classes (labels) in your dataset for classification to work.
-- The scripts do not use the skeleton images for training; only the keypoints CSVs are used.
-- You can adjust the label extraction logic in `cnn_model.py` to suit your dataset naming convention.
+Required packages:
+- tensorflow
+- numpy
+- pandas
+- opencv-python
+- scikit-learn
+- tensorflow-hub
 
-## File Structure
-- `dataset/` — Place your input videos here.
-- `train_data/` — Output keypoints CSVs and images will be saved here.
-- `train_data/images/` — Skeleton images for each processed frame.
-- `movenet_keypoint_exporter.py` — Extracts keypoints and renders skeletons from videos.
-- `cnn_model.py` — Trains a classifier on keypoints and exports a TFLite model.
-- `requirements.txt` — Python dependencies.
+## 🔧 Usage
 
-## Example Workflow
-1. Add videos to `dataset/`.
-2. Run `python movenet_keypoint_exporter.py` to extract keypoints and images.
-3. Run `python cnn_model.py` to train and export the classifier.
+### Simple Usage
+```bash
+# Run complete pipeline
+python run.py
+```
+
+### Advanced Usage
+```bash
+# Run complete pipeline
+python flexfit_pipeline.py
+
+# Run specific step
+python flexfit_pipeline.py --step extract
+python flexfit_pipeline.py --step train
+
+# Force re-run (ignore existing files)
+python flexfit_pipeline.py --force
+```
+
+## 📊 Pipeline Steps
+
+### 1. Keypoint Extraction
+- Extracts 17 body keypoints from videos using MoveNet
+- Processes both correct and incorrect form videos
+- Saves keypoints to `keypoints_data/keypoints_dataset.csv`
+
+### 2. Model Training & TFLite Creation
+- Trains 1D CNN with multi-head outputs
+- Creates TensorFlow Lite model for deployment
+- Outputs `pose_model.tflite`
+
+## 🏗️ Model Architecture
+
+The model uses a 1D Convolutional Neural Network with two outputs:
+
+1. **Form Score** (0-1): Overall exercise form quality
+2. **Joint Alignment** (17 joints): Binary alignment for each joint
+
+### Loss Functions
+- Form Score: Mean Squared Error (MSE)
+- Joint Alignment: Binary Cross-Entropy (BCE)
+
+## 🚀 Deployment
+
+### Using TFLite Model
+```python
+import tensorflow as tf
+import numpy as np
+
+# Load TFLite model
+interpreter = tf.lite.Interpreter(model_path="pose_model.tflite")
+interpreter.allocate_tensors()
+
+# Get input/output details
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
+
+# Prepare input (17 keypoints, 3 features each)
+keypoints = np.random.randn(1, 17, 3).astype(np.float32)
+
+# Run inference
+interpreter.set_tensor(input_details[0]['index'], keypoints)
+interpreter.invoke()
+
+# Get results
+form_score = interpreter.get_tensor(output_details[0]['index'])
+joint_alignment = interpreter.get_tensor(output_details[1]['index'])
+```
+
+## 🔧 Customization
+
+### Adding New Exercises
+1. Add videos to `dataset/correct/` and `dataset/incorrect/`
+2. Run the pipeline: `python run.py`
+3. The model will automatically adapt to new data
+
+### Model Configuration
+Edit `Flexfit_model_design.py` to modify:
+- Model architecture
+- Loss weights
+- Training parameters
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+**Missing Dependencies**
+```bash
+pip install -r requirements.txt
+```
+
+**Dataset Structure**
+Ensure your dataset follows this structure:
+```
+dataset/
+├── correct/
+│   ├── video1.mp4
+│   └── video2.mp4
+└── incorrect/
+    ├── video3.mp4
+    └── video4.mp4
+```
+
+**Memory Issues**
+- Reduce batch size in training
+- Use fewer epochs
+- Process videos in smaller batches
+
+## 📝 Logging
+
+The pipeline generates detailed logs:
+- `flexfit_pipeline.log`: Complete execution log
+- Console output: Real-time progress updates
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Google MoveNet for pose estimation
+- TensorFlow for the ML framework
+- OpenCV for video processing
 
 ---
-For further customization or troubleshooting, see comments in the scripts or contact the author.
+
+**FlexFit ML Pipeline** - Streamlined exercise form analysis! 🏋️‍♂️
