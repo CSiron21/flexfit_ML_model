@@ -1,0 +1,243 @@
+2025-08-14 12:19:30,771 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:19:30,771 - INFO - Checking dependencies...
+2025-08-14 12:19:35,276 - INFO - [OK] tensorflow
+2025-08-14 12:19:35,277 - INFO - [OK] numpy
+2025-08-14 12:19:35,277 - INFO - [OK] pandas
+2025-08-14 12:19:35,277 - INFO - [OK] opencv-python
+2025-08-14 12:19:35,277 - INFO - [OK] scikit-learn
+2025-08-14 12:19:37,175 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:19:37,440 - INFO - [OK] tensorflow-hub
+2025-08-14 12:19:37,441 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:19:37,441 - INFO - Checking dataset structure...
+2025-08-14 12:19:37,441 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:19:37,442 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:19:37,442 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:19:37,442 - INFO - ============================================================
+2025-08-14 12:19:37,442 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:19:37,443 - INFO - ============================================================
+2025-08-14 12:19:37,443 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:19:37,572 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:19:37,625 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:19:45,968 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:19:45,969 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:19:45,969 - INFO - Extracting keypoints from videos...
+2025-08-14 12:28:09,453 - INFO - [OK] Keypoint extraction completed!
+2025-08-14 12:28:09,453 - INFO - ============================================================
+2025-08-14 12:28:09,453 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:28:09,454 - INFO - ============================================================
+2025-08-14 12:28:09,548 - INFO - Training model and creating TFLite...
+2025-08-14 12:28:09,560 - ERROR - [ERROR] Model training/deployment failed: 'FlexFitDataPipeline' object has no attribute 'process_all_videos'
+2025-08-14 12:28:09,560 - ERROR - [ERROR] Pipeline failed at train_deploy step
+2025-08-14 12:29:47,196 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:29:47,196 - INFO - Checking dependencies...
+2025-08-14 12:29:51,284 - INFO - [OK] tensorflow
+2025-08-14 12:29:51,285 - INFO - [OK] numpy
+2025-08-14 12:29:51,285 - INFO - [OK] pandas
+2025-08-14 12:29:51,285 - INFO - [OK] opencv-python
+2025-08-14 12:29:51,285 - INFO - [OK] scikit-learn
+2025-08-14 12:29:53,237 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:29:53,484 - INFO - [OK] tensorflow-hub
+2025-08-14 12:29:53,484 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:29:53,484 - INFO - Checking dataset structure...
+2025-08-14 12:29:53,485 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:29:53,485 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:29:53,485 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:29:53,486 - INFO - ============================================================
+2025-08-14 12:29:53,486 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:29:53,486 - INFO - ============================================================
+2025-08-14 12:29:53,486 - INFO - [SKIP] Keypoints already extracted. Skipping...
+2025-08-14 12:29:53,486 - INFO - ============================================================
+2025-08-14 12:29:53,487 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:29:53,487 - INFO - ============================================================
+2025-08-14 12:29:53,571 - INFO - Training model and creating TFLite...
+2025-08-14 12:29:53,573 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:29:53,780 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:29:53,887 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:30:02,329 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:30:02,330 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:30:06,604 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:30:07,038 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:30:07,499 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:30:11,316 - ERROR - [ERROR] Model training/deployment failed: 
+$P = \\frac{TP}{TP + FP}$ (Precision)
+^
+ParseException: Expected end of text, found '$'  (at char 0), (line:1, col:1)
+2025-08-14 12:30:11,317 - ERROR - [ERROR] Pipeline failed at train_deploy step
+2025-08-14 12:35:01,357 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:35:01,358 - INFO - Checking dependencies...
+2025-08-14 12:35:05,428 - INFO - [OK] tensorflow
+2025-08-14 12:35:05,428 - INFO - [OK] numpy
+2025-08-14 12:35:05,428 - INFO - [OK] pandas
+2025-08-14 12:35:05,429 - INFO - [OK] opencv-python
+2025-08-14 12:35:05,429 - INFO - [OK] scikit-learn
+2025-08-14 12:35:07,376 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:35:07,617 - INFO - [OK] tensorflow-hub
+2025-08-14 12:35:07,617 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:35:07,617 - INFO - Checking dataset structure...
+2025-08-14 12:35:07,618 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:35:07,619 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:35:07,619 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:35:07,619 - INFO - ============================================================
+2025-08-14 12:35:07,619 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:35:07,619 - INFO - ============================================================
+2025-08-14 12:35:07,620 - INFO - [SKIP] Keypoints already extracted. Skipping...
+2025-08-14 12:35:07,620 - INFO - ============================================================
+2025-08-14 12:35:07,620 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:35:07,620 - INFO - ============================================================
+2025-08-14 12:35:07,713 - INFO - Training model and creating TFLite...
+2025-08-14 12:35:07,716 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:35:07,920 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:35:08,026 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:35:16,261 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:35:16,261 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:35:20,433 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:35:20,826 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:35:21,266 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:35:24,888 - ERROR - [ERROR] Model training/deployment failed: 
+MAE = \frac{1}{n} \sum \lvert y_i - \hat{y}_i \rvert
+                       ^
+ParseFatalException: Unknown symbol: \lvert, found '\'  (at char 23), (line:1, col:24)
+2025-08-14 12:35:24,888 - ERROR - [ERROR] Pipeline failed at train_deploy step
+2025-08-14 12:36:50,014 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:36:50,014 - INFO - Checking dependencies...
+2025-08-14 12:36:54,042 - INFO - [OK] tensorflow
+2025-08-14 12:36:54,042 - INFO - [OK] numpy
+2025-08-14 12:36:54,043 - INFO - [OK] pandas
+2025-08-14 12:36:54,043 - INFO - [OK] opencv-python
+2025-08-14 12:36:54,043 - INFO - [OK] scikit-learn
+2025-08-14 12:36:56,000 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:36:56,242 - INFO - [OK] tensorflow-hub
+2025-08-14 12:36:56,242 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:36:56,243 - INFO - Checking dataset structure...
+2025-08-14 12:36:56,243 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:36:56,244 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:36:56,244 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:36:56,244 - INFO - ============================================================
+2025-08-14 12:36:56,244 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:36:56,245 - INFO - ============================================================
+2025-08-14 12:36:56,245 - INFO - [SKIP] Keypoints already extracted. Skipping...
+2025-08-14 12:36:56,245 - INFO - ============================================================
+2025-08-14 12:36:56,245 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:36:56,245 - INFO - ============================================================
+2025-08-14 12:36:56,336 - INFO - Training model and creating TFLite...
+2025-08-14 12:36:56,338 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:36:56,543 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:36:56,649 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:37:04,922 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:37:04,923 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:37:09,114 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:37:09,516 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:37:59,212 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:37:59,265 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:37:59,791 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmpq3pzn9so\assets
+2025-08-14 12:38:01,120 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmpun2q7r3t\assets
+2025-08-14 12:38:01,690 - INFO - [OK] Model training and TFLite deployment completed!
+2025-08-14 12:38:01,691 - INFO - ============================================================
+2025-08-14 12:38:01,691 - INFO - PIPELINE COMPLETED SUCCESSFULLY!
+2025-08-14 12:38:01,691 - INFO - ============================================================
+2025-08-14 12:38:01,691 - INFO - Time: 71.68 seconds
+2025-08-14 12:38:01,691 - INFO - Generated files:
+2025-08-14 12:38:01,691 - INFO -   - keypoints_data/keypoints_dataset.csv
+2025-08-14 12:38:01,692 - INFO -   - pose_model.tflite
+2025-08-14 12:41:18,775 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:41:18,775 - INFO - Checking dependencies...
+2025-08-14 12:41:22,861 - INFO - [OK] tensorflow
+2025-08-14 12:41:22,861 - INFO - [OK] numpy
+2025-08-14 12:41:22,861 - INFO - [OK] pandas
+2025-08-14 12:41:22,862 - INFO - [OK] opencv-python
+2025-08-14 12:41:22,862 - INFO - [OK] scikit-learn
+2025-08-14 12:41:24,809 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:41:25,042 - INFO - [OK] tensorflow-hub
+2025-08-14 12:41:25,043 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:41:25,043 - INFO - Checking dataset structure...
+2025-08-14 12:41:25,044 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:41:25,044 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:41:25,044 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:41:25,044 - INFO - ============================================================
+2025-08-14 12:41:25,045 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:41:25,045 - INFO - ============================================================
+2025-08-14 12:41:25,045 - INFO - [SKIP] Keypoints already extracted. Skipping...
+2025-08-14 12:41:25,045 - INFO - ============================================================
+2025-08-14 12:41:25,045 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:41:25,046 - INFO - ============================================================
+2025-08-14 12:41:25,133 - INFO - Training model and creating TFLite...
+2025-08-14 12:41:25,136 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:41:25,341 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:41:25,445 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:41:33,812 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:41:33,813 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:41:38,034 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:41:38,493 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:41:38,895 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:41:57,489 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:41:57,530 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:41:58,053 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmp_beugq2c\assets
+2025-08-14 12:41:59,377 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmp87l2nqkq\assets
+2025-08-14 12:41:59,938 - INFO - [OK] Model training and TFLite deployment completed!
+2025-08-14 12:41:59,939 - INFO - ============================================================
+2025-08-14 12:41:59,939 - INFO - PIPELINE COMPLETED SUCCESSFULLY!
+2025-08-14 12:41:59,939 - INFO - ============================================================
+2025-08-14 12:41:59,939 - INFO - Time: 41.16 seconds
+2025-08-14 12:41:59,939 - INFO - Generated files:
+2025-08-14 12:41:59,939 - INFO -   - keypoints_data/keypoints_dataset.csv
+2025-08-14 12:41:59,939 - INFO -   - pose_model.tflite
+2025-08-14 12:44:55,055 - INFO - Starting FlexFit ML Pipeline...
+2025-08-14 12:44:55,056 - INFO - Checking dependencies...
+2025-08-14 12:44:59,181 - INFO - [OK] tensorflow
+2025-08-14 12:44:59,181 - INFO - [OK] numpy
+2025-08-14 12:44:59,181 - INFO - [OK] pandas
+2025-08-14 12:44:59,182 - INFO - [OK] opencv-python
+2025-08-14 12:44:59,182 - INFO - [OK] scikit-learn
+2025-08-14 12:45:01,116 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tf_keras\src\losses.py:2976: The name tf.losses.sparse_softmax_cross_entropy is deprecated. Please use tf.compat.v1.losses.sparse_softmax_cross_entropy instead.
+
+2025-08-14 12:45:01,351 - INFO - [OK] tensorflow-hub
+2025-08-14 12:45:01,351 - INFO - [OK] All dependencies are installed!
+2025-08-14 12:45:01,351 - INFO - Checking dataset structure...
+2025-08-14 12:45:01,352 - INFO - [OK] dataset/correct (6 videos)
+2025-08-14 12:45:01,353 - INFO - [OK] dataset/incorrect (5 videos)
+2025-08-14 12:45:01,353 - INFO - [OK] Dataset structure is correct!
+2025-08-14 12:45:01,353 - INFO - ============================================================
+2025-08-14 12:45:01,353 - INFO - STEP 1: KEYPOINT EXTRACTION
+2025-08-14 12:45:01,353 - INFO - ============================================================
+2025-08-14 12:45:01,353 - INFO - [SKIP] Keypoints already extracted. Skipping...
+2025-08-14 12:45:01,354 - INFO - ============================================================
+2025-08-14 12:45:01,354 - INFO - STEP 2: MODEL TRAINING & TFLITE DEPLOYMENT
+2025-08-14 12:45:01,354 - INFO - ============================================================
+2025-08-14 12:45:01,443 - INFO - Training model and creating TFLite...
+2025-08-14 12:45:01,446 - INFO - Using C:\Users\PC\AppData\Local\Temp\tfhub_modules to cache modules.
+2025-08-14 12:45:01,652 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\resolver.py:120: The name tf.gfile.MakeDirs is deprecated. Please use tf.io.gfile.makedirs instead.
+
+2025-08-14 12:45:01,758 - WARNING - From C:\Users\PC\AppData\Local\Programs\Python\Python310\lib\site-packages\tensorflow_hub\module_v2.py:126: The name tf.saved_model.load_v2 is deprecated. Please use tf.compat.v2.saved_model.load instead.
+
+2025-08-14 12:45:10,139 - INFO - Fingerprint not found. Saved model loading will continue.
+2025-08-14 12:45:10,139 - INFO - path_and_singleprint metric could not be logged. Saved model loading will continue.
+2025-08-14 12:45:14,353 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:45:14,752 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:45:15,185 - WARNING - You are saving your model as an HDF5 file via `model.save()` or `keras.saving.save_model(model)`. This file format is considered legacy. We recommend using instead the native Keras format, e.g. `model.save('my_model.keras')` or `keras.saving.save_model(model, 'my_model.keras')`. 
+2025-08-14 12:45:22,016 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:45:22,056 - INFO - Function `function` contains input name(s) resource with unsupported characters which will be renamed to pose_analysis_cnn_1_joint_angles_1_biasadd_readvariableop_resource in the SavedModel.
+2025-08-14 12:45:22,581 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmpls6eaecw\assets
+2025-08-14 12:45:23,942 - INFO - Assets written to: C:\Users\PC\AppData\Local\Temp\tmpf_c44kkt\assets
+2025-08-14 12:45:24,502 - INFO - [OK] Model training and TFLite deployment completed!
+2025-08-14 12:45:24,502 - INFO - ============================================================
+2025-08-14 12:45:24,502 - INFO - PIPELINE COMPLETED SUCCESSFULLY!
+2025-08-14 12:45:24,502 - INFO - ============================================================
+2025-08-14 12:45:24,502 - INFO - Time: 29.45 seconds
+2025-08-14 12:45:24,503 - INFO - Generated files:
+2025-08-14 12:45:24,503 - INFO -   - keypoints_data/keypoints_dataset.csv
+2025-08-14 12:45:24,503 - INFO -   - pose_model.tflite

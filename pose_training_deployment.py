@@ -332,13 +332,19 @@ class PoseModelTrainer:
                 form_true, form_predictions,
                 alignment_true, alignment_predictions,
                 angles_true, angles_predictions,
-                joint_metrics
+                joint_metrics,
+                form_mae,
+                angles_mae,
+                overall_precision,
+                overall_recall,
+                overall_f1
             )
         
         return results
     
     def _plot_evaluation_results(self, form_true, form_pred, align_true, align_pred, 
-                                angles_true, angles_pred, joint_metrics):
+                                angles_true, angles_pred, joint_metrics,
+                                form_mae, angles_mae, overall_precision, overall_recall, overall_f1):
         """Plot comprehensive evaluation results"""
         
         fig, axes = plt.subplots(2, 3, figsize=(18, 12))
@@ -719,6 +725,32 @@ def run_complete_training_pipeline():
     # Save metadata
     deployer.save_metadata('pose_model_metadata.json')
     
+    # Save concise metrics summary for CLI to print at the very end
+    try:
+        summary = {
+            'alignment': {
+                'accuracy': float(results['alignment']['accuracy']),
+                'precision': float(results['alignment']['precision']),
+                'recall': float(results['alignment']['recall']),
+                'f1': float(results['alignment']['f1']),
+                'optimal_threshold': float(results['alignment']['optimal_threshold'])
+            },
+            'form': {
+                'mae': float(results['form']['mae']),
+                'mse': float(results['form']['mse']),
+                'rmse': float(results['form']['rmse'])
+            },
+            'angles': {
+                'mae': float(results['angles']['mae']),
+                'mse': float(results['angles']['mse']),
+                'rmse': float(results['angles']['rmse'])
+            }
+        }
+        with open('results_summary.json', 'w') as f:
+            json.dump(summary, f, indent=2)
+    except Exception:
+        pass
+
     print("\n" + "=" * 60)
     print("PIPELINE COMPLETED SUCCESSFULLY!")
     print("=" * 60)
