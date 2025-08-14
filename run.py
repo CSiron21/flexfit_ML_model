@@ -29,6 +29,34 @@ def main():
         print("  - keypoints_data/keypoints_dataset.csv")
         print("  - pose_model.tflite")
         print("  - flexfit_pipeline.log")
+        # Print results summary after generated files
+        try:
+            import json
+            with open('results_summary.json', 'r') as f:
+                summary = json.load(f)
+            print("\nResults:")
+            print(
+                "  Alignment → "
+                f"Accuracy: {summary['alignment']['accuracy']:.4f}, "
+                f"Precision: {summary['alignment']['precision']:.4f}, "
+                f"Recall: {summary['alignment']['recall']:.4f}, "
+                f"F1: {summary['alignment']['f1']:.4f}, "
+                f"Threshold: {summary['alignment']['optimal_threshold']:.3f}"
+            )
+            print(
+                "  Form Score → "
+                f"MAE: {summary['form']['mae']:.4f}, "
+                f"MSE: {summary['form']['mse']:.4f}, "
+                f"RMSE: {summary['form']['rmse']:.4f}"
+            )
+            print(
+                "  Joint Angles → "
+                f"MAE: {summary['angles']['mae']:.4f}, "
+                f"MSE: {summary['angles']['mse']:.4f}, "
+                f"RMSE: {summary['angles']['rmse']:.4f}"
+            )
+        except Exception:
+            pass
     else:
         print("\nPipeline failed! Check the log for details.")
         sys.exit(1)
