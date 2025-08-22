@@ -3,8 +3,6 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-tf.__internal__.register_load_context_function = lambda x: None  # Monkey-Patch For Python 3.13 Compatibility
-import tensorflow_hub as hub
 import pandas as pd
 import os
 import json
@@ -32,8 +30,103 @@ KEYPOINT_DICT = {
     'right_ankle': 16
 }
 
+# Ordered joint names by index for deterministic column naming
+JOINT_NAMES_ORDERED = [name for name, _ in sorted(KEYPOINT_DICT.items(), key=lambda kv: kv[1])]
+
+# --- Configurable Parameters (Edit these for your run) ---
+VIDEO_FOLDER_PATH = "videos_dataset/squats/correct"     # Folder containing videos for this run
+OUTPUT_DIR = "keypoints_data/squats/correct"            # Directory where outputs will be saved
+METADATA_OUTPUT_DIR = "keypoints_data/squats/metadata"  # Directory where metadata JSON will be saved
+CSV_FILENAME = "correct_squats.csv"              # CSV file name to save keypoints
+LABEL_VALUE = 1.0                                       # 1.0 for correct, 0.0 for incorrect (set per run)
+FRAME_SKIP = 3                                          # Process every nth frame
+# Toggle intelligent cropping on/off
+ENABLE_INTELLIGENT_CROPPING = False
+
+# --- GPU Configuration ---
+def setup_device():
+    """
+    Configure GPU if available, otherwise fall back to CPU.
+    
+    Returns:
+        str: Device name ('GPU' or 'CPU')
+    """
+    print("🔍 Checking GPU availability...")
+    
+    # Check TensorFlow version and GPU support
+    print(f"TensorFlow version: {tf.__version__}")
+    
+    try:
+        # Check if CUDA is available (for NVIDIA GPUs)
+        cuda_available = tf.test.is_built_with_cuda()
+        print(f"CUDA support: {'✅ Available' if cuda_available else '❌ Not available'}")
+        
+        # Check for physical GPU devices
+        gpus = tf.config.list_physical_devices('GPU')
+        print(f"Physical GPU devices: {len(gpus)} found")
+        
+        if gpus:
+            for i, gpu in enumerate(gpus):
+                print(f"  GPU {i}: {gpu.name}")
+            
+            # Try to enable memory growth for all GPUs
+            try:
+                for gpu in gpus:
+                    tf.config.experimental.set_memory_growth(gpu, True)
+                print("✅ Memory growth enabled for all GPUs")
+            except Exception as e:
+                print(f"⚠️  Failed to enable memory growth: {e}")
+            
+            # Test if GPU is actually usable
+            try:
+                with tf.device('/GPU:0'):
+                    # Simple test computation
+                    test_tensor = tf.constant([1.0, 2.0, 3.0])
+                    result = tf.reduce_sum(test_tensor)
+                    print(f"✅ GPU test computation successful: {result.numpy()}")
+                print("✅ GPU is functional and will be used")
+                return 'GPU'
+            except Exception as e:
+                print(f"❌ GPU test failed: {e}")
+                print("⚠️  Falling back to CPU")
+                return 'CPU'
+        else:
+            print("❌ No physical GPU devices detected")
+            
+            # Check if it's an AMD GPU (TensorFlow doesn't support AMD GPUs well)
+            try:
+                import subprocess
+                result = subprocess.run(['nvidia-smi'], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print("✅ NVIDIA GPU detected via nvidia-smi")
+                    print("⚠️  But TensorFlow can't access it - check CUDA/TensorFlow installation")
+                else:
+                    # Try to detect AMD GPU
+                    try:
+                        result = subprocess.run(['rocm-smi'], capture_output=True, text=True)
+                        if result.returncode == 0:
+                            print("⚠️  AMD GPU detected - TensorFlow has limited AMD support")
+                        else:
+                            print("❌ No NVIDIA or AMD GPU detected")
+                    except FileNotFoundError:
+                        print("❌ No GPU detected")
+            except FileNotFoundError:
+                print("❌ nvidia-smi not found - no NVIDIA GPU or drivers")
+            
+            return 'CPU'
+            
+    except Exception as e:
+        print(f"❌ GPU detection failed: {e}")
+        print("⚠️  Falling back to CPU")
+        return 'CPU'
+
+# Initialize device
+DEVICE = setup_device()
+
 # --- Load MoveNet Model ---
-model = hub.load("https://tfhub.dev/google/movenet/singlepose/thunder/4")
+MODEL_PATH = "movenet-singlepose-thunder-4"
+
+model = tf.saved_model.load(MODEL_PATH)
 movenet = model.signatures['serving_default']
 
 # --- Crop Region Functions (from the second script) ---
@@ -101,9 +194,31 @@ def crop_and_resize(image, crop_region, crop_size=(256, 256)):
         tf.expand_dims(image, axis=0), boxes, [0], crop_size
     )[0]
 
+# --- MoveNet Inference Helper ---
+def run_movenet_inference(input_image):
+    """
+    Run MoveNet inference on the selected device (GPU/CPU).
+    
+    Args:
+        input_image: TensorFlow tensor of shape (1, height, width, 3)
+    
+    Returns:
+        numpy.ndarray: Keypoints array of shape (1, 1, 17, 3)
+    """
+    with tf.device(DEVICE):
+        keypoints = movenet(input_image)['output_0']
+        return keypoints.numpy()
+
 # --- Main Pose Detection Function ---
 def detect_keypoints(image, crop_region=None):
     """Detects pose keypoints with smart cropping."""
+    if not ENABLE_INTELLIGENT_CROPPING:
+        # Always use full image padding; ignore crop region
+        input_image = tf.image.resize_with_pad(tf.expand_dims(image, axis=0), 256, 256)
+        input_image = tf.cast(input_image, dtype=tf.int32)
+        keypoints = run_movenet_inference(input_image)
+        new_crop_region = None
+        return keypoints[0][0], new_crop_region
     if crop_region is None:
         # First frame: use full image
         input_image = tf.image.resize_with_pad(tf.expand_dims(image, axis=0), 256, 256)
@@ -112,13 +227,13 @@ def detect_keypoints(image, crop_region=None):
         input_image = crop_and_resize(image, crop_region)
     
     input_image = tf.cast(input_image, dtype=tf.int32)
-    keypoints = movenet(tf.expand_dims(input_image, axis=0))['output_0'].numpy()
+    keypoints = run_movenet_inference(tf.expand_dims(input_image, axis=0))
     
     # Update crop region for next frame
     new_crop_region = determine_crop_region(keypoints, image.shape[0], image.shape[1])
     return keypoints[0][0], new_crop_region
 
-def process_video(video_path, label, frame_skip=3):
+def process_video(video_path, label, frame_skip=FRAME_SKIP):
     """
     Process a single video and extract keypoints
     
@@ -146,65 +261,61 @@ def process_video(video_path, label, frame_skip=3):
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
             keypoints, crop_region = detect_keypoints(rgb, crop_region)
             
-            # Create data entry
-            data_entry = {
-                'video_name': os.path.basename(video_path),
-                'frame_number': frame_num,
-                'label': label,
-                'keypoints': keypoints.flatten().tolist()  # Flatten to 1D array
-            }
-            keypoints_data.append(data_entry)
+            # Create data entry: label first, then descriptive keypoint columns
+            # keypoints shape expected (17, 3) in [y, x, confidence] order
+            row = {'label': float(label)}
+            for j, name in enumerate(JOINT_NAMES_ORDERED):
+                row[f'{name}_y'] = float(keypoints[j, 0])
+                row[f'{name}_x'] = float(keypoints[j, 1])
+                row[f'{name}_conf'] = float(keypoints[j, 2])
+            keypoints_data.append(row)
         
         frame_num += 1
     
     cap.release()
-    print(f"  Extracted {len(keypoints_data)} frames from {os.path.basename(video_path)}")
+    print(f"Extracted {len(keypoints_data)} frames from {os.path.basename(video_path)}")
     return keypoints_data
 
-def process_dataset(dataset_path="dataset", output_dir="keypoints_data", frame_skip=3):
+def process_dataset(dataset_path: str = VIDEO_FOLDER_PATH,
+                    output_dir: str = OUTPUT_DIR,
+                    metadata_output_dir: str = METADATA_OUTPUT_DIR,
+                    csv_filename: str = CSV_FILENAME,
+                    label: float = LABEL_VALUE,
+                    frame_skip: int = FRAME_SKIP):
     """
-    Process all videos in the dataset folder
+    Process all videos in a single folder for one run.
     
     Args:
-        dataset_path: Path to the dataset folder
-        output_dir: Directory to save the extracted keypoints
+        dataset_path: Path to the videos folder (single class/run)
+        output_dir: Directory to save outputs
+        csv_filename: Name of the CSV file to write
+        label: Label to assign to all frames from this run (1.0 or 0.0)
         frame_skip: Process every nth frame
     """
     print("=" * 60)
     print("MOVENET KEYPOINT EXTRACTION")
     print("=" * 60)
+    print(f"🔧 Using device: {DEVICE}")
     
-    # Create output directory
+    # Create output directories
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(metadata_output_dir, exist_ok=True)
     
     all_keypoints_data = []
     video_stats = {}
     
-    # Process correct videos
-    correct_path = os.path.join(dataset_path, "correct")
-    if os.path.exists(correct_path):
-        print(f"\nProcessing correct videos from: {correct_path}")
-        for video_file in os.listdir(correct_path):
-            if video_file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-                video_path = os.path.join(correct_path, video_file)
-                video_data = process_video(video_path, label=1.0, frame_skip=frame_skip)
+    # Process videos in a single folder (one run = one label/class)
+    if os.path.exists(dataset_path):
+        print(f"\nProcessing videos from: {dataset_path}")
+        for video_file in os.listdir(dataset_path):
+            if video_file.lower().endswith((
+                '.mp4', '.avi', '.mov', '.mkv', '.webm'
+            )):
+                video_path = os.path.join(dataset_path, video_file)
+                video_data = process_video(video_path, label=label, frame_skip=frame_skip)
                 all_keypoints_data.extend(video_data)
                 video_stats[video_file] = {
-                    'label': 'correct',
-                    'frames_extracted': len(video_data)
-                }
-    
-    # Process incorrect videos
-    incorrect_path = os.path.join(dataset_path, "incorrect")
-    if os.path.exists(incorrect_path):
-        print(f"\nProcessing incorrect videos from: {incorrect_path}")
-        for video_file in os.listdir(incorrect_path):
-            if video_file.lower().endswith(('.mp4', '.avi', '.mov', '.mkv')):
-                video_path = os.path.join(incorrect_path, video_file)
-                video_data = process_video(video_path, label=0.0, frame_skip=frame_skip)
-                all_keypoints_data.extend(video_data)
-                video_stats[video_file] = {
-                    'label': 'incorrect',
+                    'label': 'correct' if label == 1.0 else 'incorrect',
                     'frames_extracted': len(video_data)
                 }
     
@@ -214,26 +325,33 @@ def process_dataset(dataset_path="dataset", output_dir="keypoints_data", frame_s
     
     # Save keypoints data
     print(f"\nSaving keypoints data...")
-    
-    # Save as CSV
+
+    # Derive file paths
+    csv_path = os.path.join(output_dir, csv_filename)
+    stem = os.path.splitext(csv_filename)[0]
+    metadata_path = os.path.join(metadata_output_dir, f"{stem}_metadata.json")
+
+    # Save as CSV (label first, followed by <joint>_y, <joint>_x, <joint>_conf in index order)
+    # Ensure column order is deterministic
     df = pd.DataFrame(all_keypoints_data)
-    csv_path = os.path.join(output_dir, "keypoints_dataset.csv")
+    ordered_cols = ['label'] + [
+        f'{name}_{comp}' for name in JOINT_NAMES_ORDERED for comp in ('y', 'x', 'conf')
+    ]
+    # Some legacy runs may lack certain cols; intersect to avoid KeyError
+    ordered_cols = [c for c in ordered_cols if c in df.columns]
+    df = df[ordered_cols]
     df.to_csv(csv_path, index=False)
-    
-    # Save as JSON for easier processing
-    json_path = os.path.join(output_dir, "keypoints_dataset.json")
-    with open(json_path, 'w') as f:
-        json.dump(all_keypoints_data, f, indent=2)
-    
+
     # Save metadata
     metadata = {
         'total_frames': len(all_keypoints_data),
         'keypoint_structure': {
             'num_joints': 17,
-            'features_per_joint': 3,  # x, y, confidence
-            'total_features': 51
+            'features_per_joint': 3,
+            'total_features': 51,
+            'order': ['y', 'x', 'confidence']
         },
-        'keypoint_names': list(KEYPOINT_DICT.keys()),
+        'keypoint_names': JOINT_NAMES_ORDERED,
         'video_stats': video_stats,
         'processing_params': {
             'frame_skip': frame_skip,
@@ -242,10 +360,15 @@ def process_dataset(dataset_path="dataset", output_dir="keypoints_data", frame_s
         'label_mapping': {
             '1.0': 'correct',
             '0.0': 'incorrect'
+        },
+        'run_config': {
+            'video_folder_path': dataset_path,
+            'output_dir': output_dir,
+            'csv_filename': csv_filename,
+            'label_value': label
         }
     }
-    
-    metadata_path = os.path.join(output_dir, "metadata.json")
+
     with open(metadata_path, 'w') as f:
         json.dump(metadata, f, indent=2)
     
@@ -257,9 +380,8 @@ def process_dataset(dataset_path="dataset", output_dir="keypoints_data", frame_s
     print(f"✅ Videos processed: {len(video_stats)}")
     print(f"✅ Output directory: {output_dir}")
     print(f"✅ Files created:")
-    print(f"   - keypoints_dataset.csv")
-    print(f"   - keypoints_dataset.json")
-    print(f"   - metadata.json")
+    print(f"   - {os.path.basename(csv_path)}")
+    print(f"   - {os.path.basename(metadata_path)}")
     
     # Print video statistics
     print(f"\n📊 Video Statistics:")
@@ -268,45 +390,18 @@ def process_dataset(dataset_path="dataset", output_dir="keypoints_data", frame_s
     
     return all_keypoints_data
 
-def load_keypoints_data(data_path="keypoints_data"):
-    """
-    Load extracted keypoints data
-    
-    Args:
-        data_path: Path to the keypoints data directory
-    
-    Returns:
-        Dictionary containing the loaded data
-    """
-    csv_path = os.path.join(data_path, "keypoints_dataset.csv")
-    metadata_path = os.path.join(data_path, "metadata.json")
-    
-    if not os.path.exists(csv_path):
-        print(f"❌ Keypoints data not found at: {csv_path}")
-        print("Please run the extraction first using process_dataset()")
-        return None
-    
-    # Load data
-    df = pd.read_csv(csv_path)
-    
-    # Load metadata
-    with open(metadata_path, 'r') as f:
-        metadata = json.load(f)
-    
-    return {
-        'dataframe': df,
-        'metadata': metadata
-    }
-
 # --- Main execution ---
 if __name__ == "__main__":
-    # Process the entire dataset
+    # Process a single folder (configure paths at the top of this file)
     keypoints_data = process_dataset(
-        dataset_path="dataset",
-        output_dir="keypoints_data",
-        frame_skip=3
+        dataset_path=VIDEO_FOLDER_PATH,
+        output_dir=OUTPUT_DIR,
+        metadata_output_dir=METADATA_OUTPUT_DIR,
+        csv_filename=CSV_FILENAME,
+        label=LABEL_VALUE,
+        frame_skip=FRAME_SKIP,
     )
-    
+
     if keypoints_data:
         print("\n🎉 Keypoint extraction completed successfully!")
         print("You can now use the extracted data for training your model.")
