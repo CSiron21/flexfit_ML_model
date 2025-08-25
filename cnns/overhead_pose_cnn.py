@@ -4,26 +4,29 @@ from tensorflow.keras import layers
 # Instruction decoding for external use
 INSTRUCTION_MAP = {
     0: "good_form",
-    1: "knee_forward_over_ankle",
-    2: "shoulder_forward",
+    1: "elbow_flare",
+    2: "wrist_asymmetry",
 }
 
-class SquatPoseCNN(tf.keras.Model):
+class OverheadPoseCNN(tf.keras.Model):
 	"""
-	Squat-focused 1D CNN with engineered biomechanical features and rule-based outputs.
-	Optimized for sideways camera views where the hidden leg cannot be reliably observed.
+	Overhead Press-focused 1D CNN with engineered biomechanical features and rule-based outputs.
+	Optimized for front-view camera analysis where both sides are independently observable.
 	
-	Knee-Forward Rule: Single-unit analysis using confidence-based side selection:
-	- Selects the knee-ankle pair with higher confidence score from Movenet for measurement
-	- Computes knee_forward_offset = knee_x - ankle_x for the selected side only
-	- Triggers if offset exceeds knee_forward_threshold + tolerance (5% wiggle room)
-	- Benefits: robust to occlusion, sideways views, prevents false positives from hidden legs
-	- Visual feedback highlights ONLY the knee and ankle of the higher-confidence side
+	Elbow Flare Rule: Ensures elbows do not flare outward during press:
+	- Computes horizontal (x-axis) offset between wrist and elbow for each side independently
+	- Triggers if offset exceeds elbow_flare_threshold + tolerance
+	- Visual feedback highlights wrist and elbow on the affected side(s)
 	
-	Features: Focuses on robust, visible-side measurements only:
-	- knee_forward_offset: Single-unit forward offset using higher-confidence side only
-	- shoulder_over_knee: Shoulder forward offset relative to knee position
-	- Both features use consistent same-side joint selection for reliability
+	Wrist Symmetry Rule: Ensures both wrists rise evenly at the same height:
+	- Computes vertical (y-axis) difference between left and right wrists
+	- Triggers if difference exceeds wrist_symmetry_threshold + tolerance
+	- Visual feedback highlights both wrists and elbows
+	
+	Features: Focuses on front-view measurements:
+	- elbow_flare_offset: Horizontal misalignment between wrist and elbow (both sides)
+	- wrist_symmetry_offset: Vertical difference between left and right wrists
+	- Both features use independent side analysis for front-view reliability
 
 	Inputs: (batch, 51) flattened keypoints [y, x, conf] * 17
 	Outputs:
@@ -35,18 +38,18 @@ class SquatPoseCNN(tf.keras.Model):
 	def __init__(
 		self,
 		num_joints: int = 17,
-		knee_forward_threshold: float = 0.30,
-		knee_forward_tolerance: float = 0.05,
-		shoulder_forward_threshold: float = 0.18,
-		shoulder_forward_tolerance: float = 0.05,
+		elbow_flare_threshold: float = 0.15,
+		elbow_flare_tolerance: float = 0.05,
+		wrist_symmetry_threshold: float = 0.12,
+		wrist_symmetry_tolerance: float = 0.05,
 		**kwargs,
 	):
-		super(SquatPoseCNN, self).__init__(**kwargs)
+		super(OverheadPoseCNN, self).__init__(**kwargs)
 		self.num_joints = num_joints
-		self.knee_forward_threshold = knee_forward_threshold
-		self.knee_forward_tolerance = knee_forward_tolerance
-		self.shoulder_forward_threshold = shoulder_forward_threshold
-		self.shoulder_forward_tolerance = shoulder_forward_tolerance
+		self.elbow_flare_threshold = elbow_flare_threshold
+		self.elbow_flare_tolerance = elbow_flare_tolerance
+		self.wrist_symmetry_threshold = wrist_symmetry_threshold
+		self.wrist_symmetry_tolerance = wrist_symmetry_tolerance
 		self.reshape_layer = layers.Reshape((num_joints, 3))
 
 		# CNN Backbone
@@ -81,16 +84,16 @@ class SquatPoseCNN(tf.keras.Model):
 		xy = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2:3]
 
-		# Joint mask: keep shoulders, hips, knees, ankles
+		# Joint mask: keep shoulders, elbows, wrists, hips
 		preproc_mask = tf.constant([
 			0, 0, 0,  # nose, eyes
 			0, 0,     # ears
 			1, 1,     # shoulders
-			0, 0,     # elbows
-			0, 0,     # wrists
+			1, 1,     # elbows
+			1, 1,     # wrists
 			1, 1,     # hips
-			1, 1,     # knees
-			1, 1,     # ankles
+			0, 0,     # knees
+			0, 0,     # ankles
 		], dtype=tf.float32)
 		
 		mask = tf.reshape(preproc_mask, (1, self.num_joints, 1))
@@ -113,56 +116,55 @@ class SquatPoseCNN(tf.keras.Model):
 
 	def _raw_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		"""
-		Compute and normalize squat-relevant features for sideways analysis.
+		Compute and normalize overhead press-relevant features for front-view analysis.
 		Returns tensor (batch, 2) with features:
-		[knee_forward_offset_normalized, shoulder_over_knee_normalized]
-		- knee_forward_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
-		- shoulder_over_knee_normalized in [0,1], 0 small/none, 1 at/above threshold
+		[elbow_flare_offset_normalized, wrist_symmetry_offset_normalized]
+		- elbow_flare_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
+		- wrist_symmetry_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
 		All operations are vectorized and TFLite-friendly.
 		"""
 		yx = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2]
 
-		# Select side with higher knee confidence
-		knee_conf = tf.stack([conf[:, 13], conf[:, 14]], axis=1)
-		is_left = tf.cast(knee_conf[:, 0] > knee_conf[:, 1], tf.float32)
-		is_right = 1.0 - is_left
+		# Elbow flare check: horizontal offset between wrist and elbow for each side
+		left_wrist_x = yx[:, 9, 1]   # Left wrist x-coordinate
+		left_elbow_x = yx[:, 7, 1]   # Left elbow x-coordinate
+		right_wrist_x = yx[:, 10, 1] # Right wrist x-coordinate
+		right_elbow_x = yx[:, 8, 1]  # Right elbow x-coordinate
 
-		# Knee-forward offset normalization
-		knee_x = tf.stack([yx[:, 13, 1], yx[:, 14, 1]], axis=1)
-		ankle_x = tf.stack([yx[:, 15, 1], yx[:, 16, 1]], axis=1)
-		offsets = knee_x - ankle_x
-		knee_forward_offset = offsets[:, 0] * is_left + offsets[:, 1] * is_right
-		knee_forward_offset = tf.abs(knee_forward_offset)
-		knee_thresh = tf.convert_to_tensor(self.knee_forward_threshold + self.knee_forward_tolerance, dtype=knee_forward_offset.dtype)
-		knee_thresh = tf.maximum(knee_thresh, tf.constant(1e-6, dtype=knee_forward_offset.dtype))
-		knee_excess = tf.maximum(0.0, knee_forward_offset - knee_thresh)
-		knee_forward_norm = knee_excess / knee_thresh
-		knee_forward_norm = tf.clip_by_value(knee_forward_norm, 0.0, 1.0)
+		left_flare_offset = tf.abs(left_wrist_x - left_elbow_x)
+		right_flare_offset = tf.abs(right_wrist_x - right_elbow_x)
+		
+		# Use maximum flare offset from either side
+		max_flare_offset = tf.maximum(left_flare_offset, right_flare_offset)
+		
+		elbow_thresh = tf.convert_to_tensor(self.elbow_flare_threshold + self.elbow_flare_tolerance, dtype=max_flare_offset.dtype)
+		elbow_thresh = tf.maximum(elbow_thresh, tf.constant(1e-6, dtype=max_flare_offset.dtype))
+		elbow_excess = tf.maximum(0.0, max_flare_offset - elbow_thresh)
+		elbow_flare_norm = elbow_excess / elbow_thresh
+		elbow_flare_norm = tf.clip_by_value(elbow_flare_norm, 0.0, 1.0)
 
-		# Shoulder over knee forward offset (same-side selection)
-		shoulder = (yx[:, 5, :] * is_left[:, None] + yx[:, 6, :] * is_right[:, None])
-		knee = (yx[:, 13, :] * is_left[:, None] + yx[:, 14, :] * is_right[:, None])
-		shoulder_x = shoulder[:, 1]
-		knee_x_same = knee[:, 1]
-		shoulder_over_knee_offset = tf.abs(shoulder_x - knee_x_same)
-		shoulder_thresh = tf.convert_to_tensor(self.shoulder_forward_threshold + self.shoulder_forward_tolerance, dtype=shoulder_over_knee_offset.dtype)
-		shoulder_thresh = tf.maximum(shoulder_thresh, tf.constant(1e-6, dtype=shoulder_over_knee_offset.dtype))
-		shoulder_excess = tf.maximum(0.0, shoulder_over_knee_offset - shoulder_thresh)
-		shoulder_over_knee_norm = shoulder_excess / shoulder_thresh
-		shoulder_over_knee_norm = tf.clip_by_value(shoulder_over_knee_norm, 0.0, 1.0)
+		# Wrist symmetry check: vertical difference between left and right wrists
+		left_wrist_y = yx[:, 9, 0]   # Left wrist y-coordinate
+		right_wrist_y = yx[:, 10, 0] # Right wrist y-coordinate
+		
+		wrist_symmetry_offset = tf.abs(left_wrist_y - right_wrist_y)
+		
+		wrist_thresh = tf.convert_to_tensor(self.wrist_symmetry_threshold + self.wrist_symmetry_tolerance, dtype=wrist_symmetry_offset.dtype)
+		wrist_thresh = tf.maximum(wrist_thresh, tf.constant(1e-6, dtype=wrist_symmetry_offset.dtype))
+		wrist_excess = tf.maximum(0.0, wrist_symmetry_offset - wrist_thresh)
+		wrist_symmetry_norm = wrist_excess / wrist_thresh
+		wrist_symmetry_norm = tf.clip_by_value(wrist_symmetry_norm, 0.0, 1.0)
 
-		return tf.stack([knee_forward_norm, shoulder_over_knee_norm], axis=1)
+		return tf.stack([elbow_flare_norm, wrist_symmetry_norm], axis=1)
 
 	def compute_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		normalized_feats = self._raw_engineered_features(keypoints)
 		return self.biomech_dense(normalized_feats)
-	
-
 
 	def _rule_outputs(self, keypoints: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
 		"""
-		TFLite-optimized vectorized rule-based outputs for squat instructions.
+		TFLite-optimized vectorized rule-based outputs for overhead press instructions.
 		
 		Rule Selection Logic:
 		- Instead of picking the first triggered rule, selects the rule with MAXIMUM deviation
@@ -176,38 +178,29 @@ class SquatPoseCNN(tf.keras.Model):
 		yx = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2]
 
-		# Select side based on higher knee confidence
-		left_knee_conf = conf[:, 13]
-		right_knee_conf = conf[:, 14]
-		is_left = tf.cast(left_knee_conf > right_knee_conf, tf.float32)
-		is_right = 1.0 - is_left
+		# Elbow flare check: horizontal offset between wrist and elbow for each side
+		left_wrist_x = yx[:, 9, 1]   # Left wrist x-coordinate
+		left_elbow_x = yx[:, 7, 1]   # Left elbow x-coordinate
+		right_wrist_x = yx[:, 10, 1] # Right wrist x-coordinate
+		right_elbow_x = yx[:, 8, 1]  # Right elbow x-coordinate
 
-		# Helper to select same-side joint consistently
-		def pick(side_left_idx: int, side_right_idx: int) -> tf.Tensor:
-			return (yx[:, side_left_idx, :] * is_left[:, None] + 
-					yx[:, side_right_idx, :] * is_right[:, None])
+		left_flare_offset = tf.abs(left_wrist_x - left_elbow_x)
+		right_flare_offset = tf.abs(right_wrist_x - right_elbow_x)
+		max_flare_offset = tf.maximum(left_flare_offset, right_flare_offset)
+		
+		cond_elbow_flare = max_flare_offset > (self.elbow_flare_threshold + self.elbow_flare_tolerance)
+		elbow_flare_deviation = tf.maximum(0.0, max_flare_offset - (self.elbow_flare_threshold + self.elbow_flare_tolerance))
 
-		# Same-side triplet (hip, knee, ankle)
-		hip = pick(11, 12)
-		knee = pick(13, 14)
-		ankle = pick(15, 16)
-
-		# Knee-forward check
-		knee_x = knee[:, 1]
-		ankle_x = ankle[:, 1]
-		knee_forward_offset = tf.abs(knee_x - ankle_x)
-		cond_knee_forward = knee_forward_offset > (self.knee_forward_threshold + self.knee_forward_tolerance)
-		knee_forward_deviation = tf.maximum(0.0, knee_forward_offset - (self.knee_forward_threshold + self.knee_forward_tolerance))
-
-		# Shoulder-forward check
-		shoulder = pick(5, 6)
-		shoulder_x = shoulder[:, 1]
-		shoulder_forward_offset = tf.abs(shoulder_x - knee_x)
-		cond_shoulder_forward = shoulder_forward_offset > (self.shoulder_forward_threshold + self.shoulder_forward_tolerance)
-		shoulder_forward_deviation = tf.maximum(0.0, shoulder_forward_offset - (self.shoulder_forward_threshold + self.shoulder_forward_tolerance))
+		# Wrist symmetry check: vertical difference between left and right wrists
+		left_wrist_y = yx[:, 9, 0]   # Left wrist y-coordinate
+		right_wrist_y = yx[:, 10, 0] # Right wrist y-coordinate
+		
+		wrist_symmetry_offset = tf.abs(left_wrist_y - right_wrist_y)
+		cond_wrist_symmetry = wrist_symmetry_offset > (self.wrist_symmetry_threshold + self.wrist_symmetry_tolerance)
+		wrist_symmetry_deviation = tf.maximum(0.0, wrist_symmetry_offset - (self.wrist_symmetry_threshold + self.wrist_symmetry_tolerance))
 
 		# Find rule with maximum deviation (most critical issue)
-		deviation_stack = tf.stack([knee_forward_deviation, shoulder_forward_deviation], axis=1)
+		deviation_stack = tf.stack([elbow_flare_deviation, wrist_symmetry_deviation], axis=1)
 		max_deviation_idx = tf.argmax(deviation_stack, axis=1)
 		max_deviation = tf.reduce_max(deviation_stack, axis=1)
 		
@@ -217,18 +210,29 @@ class SquatPoseCNN(tf.keras.Model):
 		# Joint mask for selected instruction
 		one_hot = tf.one_hot(max_deviation_idx, depth=2, dtype=tf.float32)
 		
-		mask_knee_forward = tf.constant([0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1], dtype=tf.float32)
-		mask_shoulder_forward = tf.constant([
-			0,0,0,0,0,  # 0-4
-			1,1,        # 5-6 shoulders
-			0,0,        # 7-8 elbows
-			0,0,        # 9-10 wrists
-			1,1,        # 11-12 hips
-			1,1,        # 13-14 knees
-			0,0         # 15-16 ankles
+		# Mask for elbow flare: highlight wrists and elbows
+		mask_elbow_flare = tf.constant([
+			0,0,0,0,0,  # 0-4 nose, eyes
+			0,0,        # 5-6 ears
+			1,1,        # 7-8 shoulders
+			1,1,        # 9-10 elbows
+			1,1,        # 11-12 wrists
+			0,0,        # 13-14 hips
+			0,0,        # 15-16 knees
 		], dtype=tf.float32)
 		
-		masks = tf.stack([mask_knee_forward, mask_shoulder_forward], axis=0)
+		# Mask for wrist symmetry: highlight both wrists and elbows
+		mask_wrist_symmetry = tf.constant([
+			0,0,0,0,0,  # 0-4 nose, eyes
+			0,0,        # 5-6 ears
+			0,0,        # 7-8 shoulders
+			1,1,        # 9-10 elbows
+			1,1,        # 11-12 wrists
+			0,0,        # 13-14 hips
+			0,0,        # 15-16 knees
+		], dtype=tf.float32)
+		
+		masks = tf.stack([mask_elbow_flare, mask_wrist_symmetry], axis=0)
 		joint_mask = tf.tensordot(one_hot, masks, axes=[[1],[0]])
 		joint_mask = joint_mask * tf.cast(any_issue, tf.float32)[:, None]
 		joint_mask = tf.clip_by_value(joint_mask, 0.0, 1.0)
@@ -284,8 +288,8 @@ class SquatPoseCNN(tf.keras.Model):
 
 	@staticmethod
 	def _build_model_internal(dropout_rate: float = 0.4, learning_rate: float = 0.0005) -> tf.keras.Model:
-		"""Internal build method for SquatPoseCNN model."""
-		model = SquatPoseCNN()
+		"""Internal build method for OverheadPoseCNN model."""
+		model = OverheadPoseCNN()
 		
 		model.fusion_dropout1.rate = dropout_rate
 		model.fusion_dropout2.rate = dropout_rate * 0.67
@@ -320,4 +324,4 @@ class SquatPoseCNN(tf.keras.Model):
 
 def build_model(dropout_rate: float = 0.4, learning_rate: float = 0.0005) -> tf.keras.Model:
 	"""Module-level build_model function for easy importing by train.py."""
-	return SquatPoseCNN._build_model_internal(dropout_rate=dropout_rate, learning_rate=learning_rate)
+	return OverheadPoseCNN._build_model_internal(dropout_rate=dropout_rate, learning_rate=learning_rate)

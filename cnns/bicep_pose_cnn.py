@@ -4,25 +4,31 @@ from tensorflow.keras import layers
 # Instruction decoding for external use
 INSTRUCTION_MAP = {
     0: "good_form",
-    1: "knee_forward_over_ankle",
-    2: "shoulder_forward",
+    1: "shoulder_elbow_misaligned",
+    2: "shoulder_hip_misaligned",
 }
 
-class SquatPoseCNN(tf.keras.Model):
+class BicepPoseCNN(tf.keras.Model):
 	"""
-	Squat-focused 1D CNN with engineered biomechanical features and rule-based outputs.
-	Optimized for sideways camera views where the hidden leg cannot be reliably observed.
+	Bicep curl-focused 1D CNN with engineered biomechanical features and rule-based outputs.
+	Optimized for sideways camera views where the hidden arm cannot be reliably observed.
 	
-	Knee-Forward Rule: Single-unit analysis using confidence-based side selection:
-	- Selects the knee-ankle pair with higher confidence score from Movenet for measurement
-	- Computes knee_forward_offset = knee_x - ankle_x for the selected side only
-	- Triggers if offset exceeds knee_forward_threshold + tolerance (5% wiggle room)
-	- Benefits: robust to occlusion, sideways views, prevents false positives from hidden legs
-	- Visual feedback highlights ONLY the knee and ankle of the higher-confidence side
+	Shoulder-Elbow Rule: Single-unit analysis using confidence-based side selection:
+	- Selects the shoulder-elbow pair with higher confidence score from Movenet for measurement
+	- Computes shoulder_elbow_offset = |shoulder_x - elbow_x| for the selected side only
+	- Triggers if offset exceeds shoulder_elbow_threshold + tolerance (5% wiggle room)
+	- Benefits: robust to occlusion, sideways views, prevents false positives from hidden arm
+	- Visual feedback highlights ONLY the shoulder and elbow of the higher-confidence side
 	
+	Shoulder-Hip Rule: Ensures torso stays upright during curl:
+	- Uses same-side shoulder and hip for consistent measurement
+	- Computes shoulder_hip_offset = |shoulder_x - hip_x| for the selected side only
+	- Triggers if offset exceeds shoulder_hip_threshold + tolerance
+	- Visual feedback highlights ONLY the shoulder and hip of the higher-confidence side
+
 	Features: Focuses on robust, visible-side measurements only:
-	- knee_forward_offset: Single-unit forward offset using higher-confidence side only
-	- shoulder_over_knee: Shoulder forward offset relative to knee position
+	- shoulder_elbow_offset: Single-unit horizontal offset using higher-confidence side only
+	- shoulder_hip_offset: Torso alignment offset using same-side joints
 	- Both features use consistent same-side joint selection for reliability
 
 	Inputs: (batch, 51) flattened keypoints [y, x, conf] * 17
@@ -35,18 +41,18 @@ class SquatPoseCNN(tf.keras.Model):
 	def __init__(
 		self,
 		num_joints: int = 17,
-		knee_forward_threshold: float = 0.30,
-		knee_forward_tolerance: float = 0.05,
-		shoulder_forward_threshold: float = 0.18,
-		shoulder_forward_tolerance: float = 0.05,
+		shoulder_elbow_threshold: float = 0.15,
+		shoulder_elbow_tolerance: float = 0.05,
+		shoulder_hip_threshold: float = 0.20,
+		shoulder_hip_tolerance: float = 0.05,
 		**kwargs,
 	):
-		super(SquatPoseCNN, self).__init__(**kwargs)
+		super(BicepPoseCNN, self).__init__(**kwargs)
 		self.num_joints = num_joints
-		self.knee_forward_threshold = knee_forward_threshold
-		self.knee_forward_tolerance = knee_forward_tolerance
-		self.shoulder_forward_threshold = shoulder_forward_threshold
-		self.shoulder_forward_tolerance = shoulder_forward_tolerance
+		self.shoulder_elbow_threshold = shoulder_elbow_threshold
+		self.shoulder_elbow_tolerance = shoulder_elbow_tolerance
+		self.shoulder_hip_threshold = shoulder_hip_threshold
+		self.shoulder_hip_tolerance = shoulder_hip_tolerance
 		self.reshape_layer = layers.Reshape((num_joints, 3))
 
 		# CNN Backbone
@@ -81,16 +87,16 @@ class SquatPoseCNN(tf.keras.Model):
 		xy = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2:3]
 
-		# Joint mask: keep shoulders, hips, knees, ankles
+		# Joint mask: keep shoulders, elbows, wrists, hips
 		preproc_mask = tf.constant([
 			0, 0, 0,  # nose, eyes
 			0, 0,     # ears
 			1, 1,     # shoulders
-			0, 0,     # elbows
-			0, 0,     # wrists
+			1, 1,     # elbows
+			1, 1,     # wrists
 			1, 1,     # hips
-			1, 1,     # knees
-			1, 1,     # ankles
+			0, 0,     # knees
+			0, 0,     # ankles
 		], dtype=tf.float32)
 		
 		mask = tf.reshape(preproc_mask, (1, self.num_joints, 1))
@@ -113,56 +119,53 @@ class SquatPoseCNN(tf.keras.Model):
 
 	def _raw_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		"""
-		Compute and normalize squat-relevant features for sideways analysis.
+		Compute and normalize bicep curl-relevant features for sideways analysis.
 		Returns tensor (batch, 2) with features:
-		[knee_forward_offset_normalized, shoulder_over_knee_normalized]
-		- knee_forward_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
-		- shoulder_over_knee_normalized in [0,1], 0 small/none, 1 at/above threshold
+		[shoulder_elbow_offset_normalized, shoulder_hip_offset_normalized]
+		- shoulder_elbow_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
+		- shoulder_hip_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
 		All operations are vectorized and TFLite-friendly.
 		"""
 		yx = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2]
 
-		# Select side with higher knee confidence
-		knee_conf = tf.stack([conf[:, 13], conf[:, 14]], axis=1)
-		is_left = tf.cast(knee_conf[:, 0] > knee_conf[:, 1], tf.float32)
+		# Select side with higher shoulder confidence
+		shoulder_conf = tf.stack([conf[:, 5], conf[:, 6]], axis=1)
+		is_left = tf.cast(shoulder_conf[:, 0] > shoulder_conf[:, 1], tf.float32)
 		is_right = 1.0 - is_left
 
-		# Knee-forward offset normalization
-		knee_x = tf.stack([yx[:, 13, 1], yx[:, 14, 1]], axis=1)
-		ankle_x = tf.stack([yx[:, 15, 1], yx[:, 16, 1]], axis=1)
-		offsets = knee_x - ankle_x
-		knee_forward_offset = offsets[:, 0] * is_left + offsets[:, 1] * is_right
-		knee_forward_offset = tf.abs(knee_forward_offset)
-		knee_thresh = tf.convert_to_tensor(self.knee_forward_threshold + self.knee_forward_tolerance, dtype=knee_forward_offset.dtype)
-		knee_thresh = tf.maximum(knee_thresh, tf.constant(1e-6, dtype=knee_forward_offset.dtype))
-		knee_excess = tf.maximum(0.0, knee_forward_offset - knee_thresh)
-		knee_forward_norm = knee_excess / knee_thresh
-		knee_forward_norm = tf.clip_by_value(knee_forward_norm, 0.0, 1.0)
+		# Shoulder-elbow offset normalization
+		shoulder_x = tf.stack([yx[:, 5, 1], yx[:, 6, 1]], axis=1)
+		elbow_x = tf.stack([yx[:, 7, 1], yx[:, 8, 1]], axis=1)
+		shoulder_elbow_offsets = tf.abs(shoulder_x - elbow_x)
+		shoulder_elbow_offset = shoulder_elbow_offsets[:, 0] * is_left + shoulder_elbow_offsets[:, 1] * is_right
+		shoulder_elbow_thresh = tf.convert_to_tensor(self.shoulder_elbow_threshold + self.shoulder_elbow_tolerance, dtype=shoulder_elbow_offset.dtype)
+		shoulder_elbow_thresh = tf.maximum(shoulder_elbow_thresh, tf.constant(1e-6, dtype=shoulder_elbow_offset.dtype))
+		shoulder_elbow_excess = tf.maximum(0.0, shoulder_elbow_offset - shoulder_elbow_thresh)
+		shoulder_elbow_norm = shoulder_elbow_excess / shoulder_elbow_thresh
+		shoulder_elbow_norm = tf.clip_by_value(shoulder_elbow_norm, 0.0, 1.0)
 
-		# Shoulder over knee forward offset (same-side selection)
+		# Shoulder-hip offset normalization (same-side selection)
 		shoulder = (yx[:, 5, :] * is_left[:, None] + yx[:, 6, :] * is_right[:, None])
-		knee = (yx[:, 13, :] * is_left[:, None] + yx[:, 14, :] * is_right[:, None])
-		shoulder_x = shoulder[:, 1]
-		knee_x_same = knee[:, 1]
-		shoulder_over_knee_offset = tf.abs(shoulder_x - knee_x_same)
-		shoulder_thresh = tf.convert_to_tensor(self.shoulder_forward_threshold + self.shoulder_forward_tolerance, dtype=shoulder_over_knee_offset.dtype)
-		shoulder_thresh = tf.maximum(shoulder_thresh, tf.constant(1e-6, dtype=shoulder_over_knee_offset.dtype))
-		shoulder_excess = tf.maximum(0.0, shoulder_over_knee_offset - shoulder_thresh)
-		shoulder_over_knee_norm = shoulder_excess / shoulder_thresh
-		shoulder_over_knee_norm = tf.clip_by_value(shoulder_over_knee_norm, 0.0, 1.0)
+		hip = (yx[:, 11, :] * is_left[:, None] + yx[:, 12, :] * is_right[:, None])
+		shoulder_x_same = shoulder[:, 1]
+		hip_x_same = hip[:, 1]
+		shoulder_hip_offset = tf.abs(shoulder_x_same - hip_x_same)
+		shoulder_hip_thresh = tf.convert_to_tensor(self.shoulder_hip_threshold + self.shoulder_hip_tolerance, dtype=shoulder_hip_offset.dtype)
+		shoulder_hip_thresh = tf.maximum(shoulder_hip_thresh, tf.constant(1e-6, dtype=shoulder_hip_offset.dtype))
+		shoulder_hip_excess = tf.maximum(0.0, shoulder_hip_offset - shoulder_hip_thresh)
+		shoulder_hip_norm = shoulder_hip_excess / shoulder_hip_thresh
+		shoulder_hip_norm = tf.clip_by_value(shoulder_hip_norm, 0.0, 1.0)
 
-		return tf.stack([knee_forward_norm, shoulder_over_knee_norm], axis=1)
+		return tf.stack([shoulder_elbow_norm, shoulder_hip_norm], axis=1)
 
 	def compute_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		normalized_feats = self._raw_engineered_features(keypoints)
 		return self.biomech_dense(normalized_feats)
-	
-
 
 	def _rule_outputs(self, keypoints: tf.Tensor) -> tuple[tf.Tensor, tf.Tensor]:
 		"""
-		TFLite-optimized vectorized rule-based outputs for squat instructions.
+		TFLite-optimized vectorized rule-based outputs for bicep curl instructions.
 		
 		Rule Selection Logic:
 		- Instead of picking the first triggered rule, selects the rule with MAXIMUM deviation
@@ -176,10 +179,10 @@ class SquatPoseCNN(tf.keras.Model):
 		yx = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2]
 
-		# Select side based on higher knee confidence
-		left_knee_conf = conf[:, 13]
-		right_knee_conf = conf[:, 14]
-		is_left = tf.cast(left_knee_conf > right_knee_conf, tf.float32)
+		# Select side based on higher shoulder confidence
+		left_shoulder_conf = conf[:, 5]
+		right_shoulder_conf = conf[:, 6]
+		is_left = tf.cast(left_shoulder_conf > right_shoulder_conf, tf.float32)
 		is_right = 1.0 - is_left
 
 		# Helper to select same-side joint consistently
@@ -187,27 +190,27 @@ class SquatPoseCNN(tf.keras.Model):
 			return (yx[:, side_left_idx, :] * is_left[:, None] + 
 					yx[:, side_right_idx, :] * is_right[:, None])
 
-		# Same-side triplet (hip, knee, ankle)
-		hip = pick(11, 12)
-		knee = pick(13, 14)
-		ankle = pick(15, 16)
-
-		# Knee-forward check
-		knee_x = knee[:, 1]
-		ankle_x = ankle[:, 1]
-		knee_forward_offset = tf.abs(knee_x - ankle_x)
-		cond_knee_forward = knee_forward_offset > (self.knee_forward_threshold + self.knee_forward_tolerance)
-		knee_forward_deviation = tf.maximum(0.0, knee_forward_offset - (self.knee_forward_threshold + self.knee_forward_tolerance))
-
-		# Shoulder-forward check
+		# Same-side joints
 		shoulder = pick(5, 6)
+		elbow = pick(7, 8)
+		hip = pick(11, 12)
+
+		# Shoulder-elbow check
 		shoulder_x = shoulder[:, 1]
-		shoulder_forward_offset = tf.abs(shoulder_x - knee_x)
-		cond_shoulder_forward = shoulder_forward_offset > (self.shoulder_forward_threshold + self.shoulder_forward_tolerance)
-		shoulder_forward_deviation = tf.maximum(0.0, shoulder_forward_offset - (self.shoulder_forward_threshold + self.shoulder_forward_tolerance))
+		elbow_x = elbow[:, 1]
+		shoulder_elbow_offset = tf.abs(shoulder_x - elbow_x)
+		cond_shoulder_elbow = shoulder_elbow_offset > (self.shoulder_elbow_threshold + self.shoulder_elbow_tolerance)
+		shoulder_elbow_deviation = tf.maximum(0.0, shoulder_elbow_offset - (self.shoulder_elbow_threshold + self.shoulder_elbow_tolerance))
+
+		# Shoulder-hip check
+		shoulder_x_same = shoulder[:, 1]
+		hip_x = hip[:, 1]
+		shoulder_hip_offset = tf.abs(shoulder_x_same - hip_x)
+		cond_shoulder_hip = shoulder_hip_offset > (self.shoulder_hip_threshold + self.shoulder_hip_tolerance)
+		shoulder_hip_deviation = tf.maximum(0.0, shoulder_hip_offset - (self.shoulder_hip_threshold + self.shoulder_hip_tolerance))
 
 		# Find rule with maximum deviation (most critical issue)
-		deviation_stack = tf.stack([knee_forward_deviation, shoulder_forward_deviation], axis=1)
+		deviation_stack = tf.stack([shoulder_elbow_deviation, shoulder_hip_deviation], axis=1)
 		max_deviation_idx = tf.argmax(deviation_stack, axis=1)
 		max_deviation = tf.reduce_max(deviation_stack, axis=1)
 		
@@ -217,18 +220,27 @@ class SquatPoseCNN(tf.keras.Model):
 		# Joint mask for selected instruction
 		one_hot = tf.one_hot(max_deviation_idx, depth=2, dtype=tf.float32)
 		
-		mask_knee_forward = tf.constant([0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,1,1], dtype=tf.float32)
-		mask_shoulder_forward = tf.constant([
+		mask_shoulder_elbow = tf.constant([
+			0,0,0,0,0,  # 0-4
+			1,1,        # 5-6 shoulders
+			1,1,        # 7-8 elbows
+			0,0,        # 9-10 wrists
+			0,0,        # 11-12 hips
+			0,0,        # 13-14 knees
+			0,0         # 15-16 ankles
+		], dtype=tf.float32)
+		
+		mask_shoulder_hip = tf.constant([
 			0,0,0,0,0,  # 0-4
 			1,1,        # 5-6 shoulders
 			0,0,        # 7-8 elbows
 			0,0,        # 9-10 wrists
 			1,1,        # 11-12 hips
-			1,1,        # 13-14 knees
+			0,0,        # 13-14 knees
 			0,0         # 15-16 ankles
 		], dtype=tf.float32)
 		
-		masks = tf.stack([mask_knee_forward, mask_shoulder_forward], axis=0)
+		masks = tf.stack([mask_shoulder_elbow, mask_shoulder_hip], axis=0)
 		joint_mask = tf.tensordot(one_hot, masks, axes=[[1],[0]])
 		joint_mask = joint_mask * tf.cast(any_issue, tf.float32)[:, None]
 		joint_mask = tf.clip_by_value(joint_mask, 0.0, 1.0)
@@ -284,8 +296,8 @@ class SquatPoseCNN(tf.keras.Model):
 
 	@staticmethod
 	def _build_model_internal(dropout_rate: float = 0.4, learning_rate: float = 0.0005) -> tf.keras.Model:
-		"""Internal build method for SquatPoseCNN model."""
-		model = SquatPoseCNN()
+		"""Internal build method for BicepPoseCNN model."""
+		model = BicepPoseCNN()
 		
 		model.fusion_dropout1.rate = dropout_rate
 		model.fusion_dropout2.rate = dropout_rate * 0.67
@@ -320,4 +332,4 @@ class SquatPoseCNN(tf.keras.Model):
 
 def build_model(dropout_rate: float = 0.4, learning_rate: float = 0.0005) -> tf.keras.Model:
 	"""Module-level build_model function for easy importing by train.py."""
-	return SquatPoseCNN._build_model_internal(dropout_rate=dropout_rate, learning_rate=learning_rate)
+	return BicepPoseCNN._build_model_internal(dropout_rate=dropout_rate, learning_rate=learning_rate)

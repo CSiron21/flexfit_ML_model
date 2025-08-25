@@ -3,6 +3,13 @@ import random
 import csv
 from typing import List, Tuple
 
+# Configure variables
+INPUT_CSV_PATH = "keypoints_data/overhead_presses/incorrect/incorrect_overhead_mirrored.csv"
+OUTPUT_CSV_PATH = "keypoints_data/overhead_presses/incorrect/incorrect_overhead_jmirrored_jittered.csv"
+MODE = "jitter"  # "jitter" or "mirror"
+JITTER_RANGE = 0.03
+
+
 # Keypoint dictionary mapping
 KEYPOINT_DICT = {
     'nose': 0,
@@ -200,11 +207,6 @@ def process_csv(input_csv_path: str,
     print(f"Processed {total_in} input rows -> wrote {total_out} augmented rows to '{output_csv_path}'.")
 
 if __name__ == "__main__":
-    # Configure variables
-    INPUT_CSV_PATH = "path/to/input.csv"
-    OUTPUT_CSV_PATH = "path/to/output.csv"
-    MODE = "jitter"  # "jitter" or "mirror"
-    JITTER_RANGE = 0.03
 
     process_csv(
         input_csv_path=INPUT_CSV_PATH,
