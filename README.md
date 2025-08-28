@@ -1,42 +1,61 @@
-# FlexFit ML Pipeline
+# FlexFit ML Model
 
-A streamlined machine learning pipeline for exercise form analysis using pose estimation with MoveNet and TensorFlow.
+A machine learning pipeline for exercise form analysis using pose estimation with MoveNet and TensorFlow. The system analyzes exercise form quality and provides real-time feedback for squats, bicep curls, and overhead presses.
 
 ## 🚀 Quick Start
 
 ```bash
-# Run the complete pipeline
-python run.py
+# Install dependencies
+pip install -r requirements.txt
 
-# Or use the advanced pipeline with options
-python flexfit_pipeline.py --step extract --force
+# Train a model (default: squats)
+python train.py
+
+# Extract keypoints from videos
+python movenet_keypoint_exporter.py
+
+# Augment existing keypoint data
+python augment_data.py
 ```
 
 ## 📁 Project Structure
 
 ```
 flexfit_ML_model/
-├── run.py                          # Simple runner script
-├── flexfit_pipeline.py             # Main pipeline
-├── Flexfit_model_design.py         # Model architecture
-├── movenet_keypoint_exporter.py    # Keypoint extraction
-├── data_pipeline.py                # Data processing
-├── pose_training_deployment.py     # Training & deployment
-├── requirements.txt                # Dependencies
-├── README.md                       # This file
-├── dataset/                        # Video dataset
-│   ├── correct/                    # Correct form videos
-│   └── incorrect/                  # Incorrect form videos
-├── keypoints_data/                 # Extracted keypoints
-└── __pycache__/                    # Python cache
+├── cnns/                           # CNN model architectures
+│   ├── base_pose_cnn.py           # Base CNN class with common functionality
+│   ├── squats_cnn.py              # Squat-specific CNN with biomechanical features
+│   ├── bicep_curls_cnn.py         # Bicep curl-specific CNN
+│   └── overhead_presses_cnn.py    # Overhead press-specific CNN
+├── keypoints_data/                 # Extracted pose keypoints
+│   ├── squats/
+│   │   ├── correct/               # Correct form keypoints
+│   │   ├── incorrect/             # Incorrect form keypoints
+│   │   └── metadata/              # Keypoint metadata
+│   ├── bicep_curls/
+│   └── overhead_presses/
+├── models/                         # Trained models
+│   ├── squats/
+│   │   ├── squat_pose_model.keras
+│   │   └── squat_pose_float16.tflite
+│   ├── bicep_curls/
+│   └── overhead_presses/
+├── videos_dataset/                 # Original video files
+├── training_logs/                  # Training progress logs
+├── movenet_keypoint_exporter.py   # Extract keypoints from videos
+├── augment_data.py                # Data augmentation utilities
+├── train.py                       # Model training script
+├── requirements.txt               # Python dependencies
+└── README.md                      # This file
 ```
 
 ## 🎯 Core Features
 
-- **Keypoint Extraction**: Extract 17 body keypoints from videos using MoveNet
-- **CSV Output**: Save keypoints to structured CSV format
-- **TFLite Model**: Create deployable TensorFlow Lite model
-- **Multi-head Architecture**: Form score + joint alignment detection
+- **Multi-Exercise Support**: Squats, bicep curls, and overhead presses
+- **Biomechanical Analysis**: Advanced joint angle calculations and form detection
+- **TFLite Optimization**: Models optimized for mobile deployment
+- **Real-time Feedback**: Form scoring and correction instructions
+- **Data Augmentation**: Mirroring and jittering for improved training
 
 ## 📋 Requirements
 
@@ -44,129 +63,135 @@ flexfit_ML_model/
 pip install -r requirements.txt
 ```
 
-Required packages:
-- tensorflow
-- numpy
-- pandas
-- opencv-python
-- scikit-learn
-- tensorflow-hub
+**Key Dependencies:**
+- `tensorflow==2.20.0` - Deep learning framework
+- `opencv-python==4.12.0.88` - Video processing
+- `numpy==2.2.4` - Numerical computations
+- `pandas==2.3.1` - Data manipulation
+- `scikit-learn==1.7.1` - Machine learning utilities
 
 ## 🔧 Usage
 
-### Simple Usage
+### Training Models
+
 ```bash
-# Run complete pipeline
-python run.py
+# Train squats model (default)
+python train.py
+
+# Train other exercises by modifying EXERCISE variable in train.py:
+# EXERCISE = "bicep_curls" or "overhead_presses"
 ```
 
-### Advanced Usage
+### Keypoint Extraction
+
 ```bash
-# Run complete pipeline
-python flexfit_pipeline.py
+# Extract keypoints from videos
+python movenet_keypoint_exporter.py
 
-# Run specific step
-python flexfit_pipeline.py --step extract
-python flexfit_pipeline.py --step train
-
-# Force re-run (ignore existing files)
-python flexfit_pipeline.py --force
+# Configure exercise and label in the script:
+# EXERCISE = "squats" | "bicep_curls" | "overhead_presses"
+# LABEL = "correct" | "incorrect"
 ```
 
-## 📊 Pipeline Steps
+### Data Augmentation
 
-### 1. Keypoint Extraction
-- Extracts 17 body keypoints from videos using MoveNet
-- Processes both correct and incorrect form videos
-- Saves keypoints to `keypoints_data/keypoints_dataset.csv`
+```bash
+# Augment existing keypoint data
+python augment_data.py
 
-### 2. Model Training & TFLite Creation
-- Trains 1D CNN with multi-head outputs
-- Creates TensorFlow Lite model for deployment
-- Outputs `pose_model.tflite`
+# Supports jittering and mirroring for data expansion
+```
 
 ## 🏗️ Model Architecture
 
-The model uses a 1D Convolutional Neural Network with two outputs:
+### CNN Architecture
+Each exercise has a specialized 1D CNN with:
+- **Input**: 17 body keypoints (y, x, confidence) flattened to 51 features
+- **CNN Backbone**: 3 convolutional layers with batch normalization
+- **Biomechanical Features**: Engineered features for joint angles and form analysis
+- **Multi-head Output**: Form score + instruction ID + joint masks
 
-1. **Form Score** (0-1): Overall exercise form quality
-2. **Joint Alignment** (17 joints): Binary alignment for each joint
+### Key Features
+- **TFLite Compatible**: All operations optimized for mobile deployment
+- **Biomechanical Analysis**: Advanced joint angle calculations using polynomial approximations
+- **Orientation-Aware**: Detects user facing direction for accurate form assessment
+- **Confidence Handling**: Robust side selection based on joint confidence scores
 
-### Loss Functions
-- Form Score: Mean Squared Error (MSE)
-- Joint Alignment: Binary Cross-Entropy (BCE)
+## 📊 Data Structure
+
+### Keypoints Data
+- **Format**: CSV files with 52 columns (label + 51 keypoint features)
+- **Organization**: Separated by exercise type and form quality
+- **Augmentation**: Supports mirroring and jittering for data expansion
+
+### Models Output
+- **Keras Models**: Full precision models for training and evaluation
+- **TFLite Models**: Optimized for mobile deployment with float16 quantization
+- **Metadata**: Training logs and model performance metrics
 
 ## 🚀 Deployment
 
-### Using TFLite Model
+### Using TFLite Models
 ```python
 import tensorflow as tf
 import numpy as np
 
 # Load TFLite model
-interpreter = tf.lite.Interpreter(model_path="pose_model.tflite")
+interpreter = tf.lite.Interpreter(model_path="models/squats/squat_pose_float16.tflite")
 interpreter.allocate_tensors()
 
-# Get input/output details
-input_details = interpreter.get_input_details()
-output_details = interpreter.get_output_details()
-
-# Prepare input (17 keypoints, 3 features each)
-keypoints = np.random.randn(1, 17, 3).astype(np.float32)
+# Prepare input (51 keypoint features)
+keypoints = np.random.randn(1, 51).astype(np.float32)
 
 # Run inference
+input_details = interpreter.get_input_details()
+output_details = interpreter.get_output_details()
 interpreter.set_tensor(input_details[0]['index'], keypoints)
 interpreter.invoke()
 
 # Get results
 form_score = interpreter.get_tensor(output_details[0]['index'])
-joint_alignment = interpreter.get_tensor(output_details[1]['index'])
+instruction_id = interpreter.get_tensor(output_details[1]['index'])
+joint_masks = interpreter.get_tensor(output_details[2]['index'])
 ```
 
 ## 🔧 Customization
 
 ### Adding New Exercises
-1. Add videos to `dataset/correct/` and `dataset/incorrect/`
-2. Run the pipeline: `python run.py`
-3. The model will automatically adapt to new data
+1. Create exercise-specific CNN in `cnns/` directory
+2. Add video data to `videos_dataset/`
+3. Extract keypoints using `movenet_keypoint_exporter.py`
+4. Train model using `train.py`
 
 ### Model Configuration
-Edit `Flexfit_model_design.py` to modify:
-- Model architecture
-- Loss weights
-- Training parameters
+- Modify hyperparameters in `train.py`
+- Adjust biomechanical thresholds in CNN files
+- Customize data augmentation in `augment_data.py`
 
 ## 🐛 Troubleshooting
 
 ### Common Issues
+
+**GPU Memory Issues**
+```bash
+# Reduce batch size in train.py
+BATCH_SIZE = 16  # Instead of 32
+```
 
 **Missing Dependencies**
 ```bash
 pip install -r requirements.txt
 ```
 
-**Dataset Structure**
-Ensure your dataset follows this structure:
-```
-dataset/
-├── correct/
-│   ├── video1.mp4
-│   └── video2.mp4
-└── incorrect/
-    ├── video3.mp4
-    └── video4.mp4
-```
-
-**Memory Issues**
-- Reduce batch size in training
-- Use fewer epochs
-- Process videos in smaller batches
+**TFLite Conversion Issues**
+- Ensure all operations are TFLite-compatible
+- Check for custom ops in model architecture
 
 ## 📝 Logging
 
-The pipeline generates detailed logs:
-- `flexfit_pipeline.log`: Complete execution log
-- Console output: Real-time progress updates
+- **Training Logs**: `training_logs/{exercise}_training.log`
+- **Console Output**: Real-time training progress
+- **Model Checkpoints**: Saved during training for recovery
 
 ## 🤝 Contributing
 
@@ -178,7 +203,7 @@ The pipeline generates detailed logs:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License.
 
 ## 🙏 Acknowledgments
 
@@ -188,4 +213,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ---
 
-**FlexFit ML Pipeline** - Streamlined exercise form analysis! 🏋️‍♂️
+**FlexFit ML Model** - Advanced exercise form analysis with biomechanical insights! 🏋️‍♂️
