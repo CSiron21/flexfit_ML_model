@@ -1,0 +1,52 @@
+{
+  "total_frames": 75,
+  "keypoint_structure": {
+    "num_joints": 17,
+    "features_per_joint": 3,
+    "total_features": 51,
+    "order": [
+      "y",
+      "x",
+      "confidence"
+    ]
+  },
+  "keypoint_names": [
+    "nose",
+    "left_eye",
+    "right_eye",
+    "left_ear",
+    "right_ear",
+    "left_shoulder",
+    "right_shoulder",
+    "left_elbow",
+    "right_elbow",
+    "left_wrist",
+    "right_wrist",
+    "left_hip",
+    "right_hip",
+    "left_knee",
+    "right_knee",
+    "left_ankle",
+    "right_ankle"
+  ],
+  "video_stats": {
+    "Incorrect_sideview_squat_10.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 75
+    }
+  },
+  "processing_params": {
+    "frame_skip": 3,
+    "min_confidence": 0.2
+  },
+  "label_mapping": {
+    "1.0": "correct",
+    "0.0": "incorrect"
+  },
+  "run_config": {
+    "video_folder_path": "videos_dataset/squats/test",
+    "output_dir": "keypoints_data/squats/test",
+    "csv_filename": "incorrect_squats_test_1.csv",
+    "label_value": 0.0
+  }
+}
