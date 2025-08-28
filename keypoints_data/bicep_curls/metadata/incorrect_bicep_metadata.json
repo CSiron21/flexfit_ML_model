@@ -1,0 +1,128 @@
+{
+  "total_frames": 1127,
+  "keypoint_structure": {
+    "num_joints": 17,
+    "features_per_joint": 3,
+    "total_features": 51,
+    "order": [
+      "y",
+      "x",
+      "confidence"
+    ]
+  },
+  "keypoint_names": [
+    "nose",
+    "left_eye",
+    "right_eye",
+    "left_ear",
+    "right_ear",
+    "left_shoulder",
+    "right_shoulder",
+    "left_elbow",
+    "right_elbow",
+    "left_wrist",
+    "right_wrist",
+    "left_hip",
+    "right_hip",
+    "left_knee",
+    "right_knee",
+    "left_ankle",
+    "right_ankle"
+  ],
+  "video_stats": {
+    "incorrect_bicepcurls_sideview_1.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 62
+    },
+    "incorrect_bicepcurls_sideview_10.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 44
+    },
+    "incorrect_bicepcurls_sideview_11.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 103
+    },
+    "incorrect_bicepcurls_sideview_12.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 46
+    },
+    "incorrect_bicepcurls_sideview_13.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 53
+    },
+    "incorrect_bicepcurls_sideview_14.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 80
+    },
+    "incorrect_bicepcurls_sideview_15.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 75
+    },
+    "incorrect_bicepcurls_sideview_16.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 46
+    },
+    "incorrect_bicepcurls_sideview_17.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 41
+    },
+    "incorrect_bicepcurls_sideview_18.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 78
+    },
+    "incorrect_bicepcurls_sideview_19.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 37
+    },
+    "incorrect_bicepcurls_sideview_2.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 42
+    },
+    "incorrect_bicepcurls_sideview_20.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 38
+    },
+    "incorrect_bicepcurls_sideview_3.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 38
+    },
+    "incorrect_bicepcurls_sideview_4.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 54
+    },
+    "incorrect_bicepcurls_sideview_5.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 50
+    },
+    "incorrect_bicepcurls_sideview_6.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 86
+    },
+    "incorrect_bicepcurls_sideview_7.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 53
+    },
+    "incorrect_bicepcurls_sideview_8.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 36
+    },
+    "incorrect_bicepcurls_sideview_9.mp4": {
+      "label": "incorrect",
+      "frames_extracted": 65
+    }
+  },
+  "processing_params": {
+    "frame_skip": 3,
+    "min_confidence": 0.2
+  },
+  "label_mapping": {
+    "1.0": "correct",
+    "0.0": "incorrect"
+  },
+  "run_config": {
+    "video_folder_path": "videos_dataset/bicep_curls/incorrect",
+    "output_dir": "keypoints_data/bicep_curls/incorrect",
+    "csv_filename": "incorrect_bicep.csv",
+    "label_value": 0.0
+  }
+}

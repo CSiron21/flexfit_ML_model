@@ -1,0 +1,128 @@
+{
+  "total_frames": 1443,
+  "keypoint_structure": {
+    "num_joints": 17,
+    "features_per_joint": 3,
+    "total_features": 51,
+    "order": [
+      "y",
+      "x",
+      "confidence"
+    ]
+  },
+  "keypoint_names": [
+    "nose",
+    "left_eye",
+    "right_eye",
+    "left_ear",
+    "right_ear",
+    "left_shoulder",
+    "right_shoulder",
+    "left_elbow",
+    "right_elbow",
+    "left_wrist",
+    "right_wrist",
+    "left_hip",
+    "right_hip",
+    "left_knee",
+    "right_knee",
+    "left_ankle",
+    "right_ankle"
+  ],
+  "video_stats": {
+    "Correct_Frontview_Overhead_1.mp4": {
+      "label": "correct",
+      "frames_extracted": 78
+    },
+    "Correct_Frontview_Overhead_10.mp4": {
+      "label": "correct",
+      "frames_extracted": 90
+    },
+    "Correct_Frontview_Overhead_11.mp4": {
+      "label": "correct",
+      "frames_extracted": 112
+    },
+    "Correct_Frontview_Overhead_12.mp4": {
+      "label": "correct",
+      "frames_extracted": 83
+    },
+    "Correct_Frontview_Overhead_13.mp4": {
+      "label": "correct",
+      "frames_extracted": 46
+    },
+    "Correct_Frontview_Overhead_14.mp4": {
+      "label": "correct",
+      "frames_extracted": 67
+    },
+    "Correct_Frontview_Overhead_15.mp4": {
+      "label": "correct",
+      "frames_extracted": 81
+    },
+    "Correct_Frontview_Overhead_16.mp4": {
+      "label": "correct",
+      "frames_extracted": 46
+    },
+    "Correct_Frontview_Overhead_17.mp4": {
+      "label": "correct",
+      "frames_extracted": 66
+    },
+    "Correct_Frontview_Overhead_18.mp4": {
+      "label": "correct",
+      "frames_extracted": 81
+    },
+    "Correct_Frontview_Overhead_19.mp4": {
+      "label": "correct",
+      "frames_extracted": 42
+    },
+    "Correct_Frontview_Overhead_2.mp4": {
+      "label": "correct",
+      "frames_extracted": 102
+    },
+    "Correct_Frontview_Overhead_20.mp4": {
+      "label": "correct",
+      "frames_extracted": 79
+    },
+    "Correct_Frontview_Overhead_3.mp4": {
+      "label": "correct",
+      "frames_extracted": 95
+    },
+    "Correct_Frontview_Overhead_4.mp4": {
+      "label": "correct",
+      "frames_extracted": 70
+    },
+    "Correct_Frontview_Overhead_5.mp4": {
+      "label": "correct",
+      "frames_extracted": 78
+    },
+    "Correct_Frontview_Overhead_6.mp4": {
+      "label": "correct",
+      "frames_extracted": 64
+    },
+    "Correct_Frontview_Overhead_7.mp4": {
+      "label": "correct",
+      "frames_extracted": 52
+    },
+    "Correct_Frontview_Overhead_8.mov": {
+      "label": "correct",
+      "frames_extracted": 61
+    },
+    "Correct_Frontview_Overhead_9.mp4": {
+      "label": "correct",
+      "frames_extracted": 50
+    }
+  },
+  "processing_params": {
+    "frame_skip": 3,
+    "min_confidence": 0.2
+  },
+  "label_mapping": {
+    "1.0": "correct",
+    "0.0": "incorrect"
+  },
+  "run_config": {
+    "video_folder_path": "videos_dataset/overhead_presses/correct",
+    "output_dir": "keypoints_data/overhead_presses/correct",
+    "csv_filename": "correct_overhead.csv",
+    "label_value": 1.0
+  }
+}
