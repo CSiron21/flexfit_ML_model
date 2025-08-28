@@ -13,24 +13,6 @@ class BicepPoseCNN(tf.keras.Model):
 	Bicep curl-focused 1D CNN with engineered biomechanical features and rule-based outputs.
 	Optimized for sideways camera views where the hidden arm cannot be reliably observed.
 	
-	Shoulder-Elbow Rule: Single-unit analysis using confidence-based side selection:
-	- Selects the shoulder-elbow pair with higher confidence score from Movenet for measurement
-	- Computes shoulder_elbow_offset = |shoulder_x - elbow_x| for the selected side only
-	- Triggers if offset exceeds shoulder_elbow_threshold + tolerance (5% wiggle room)
-	- Benefits: robust to occlusion, sideways views, prevents false positives from hidden arm
-	- Visual feedback highlights ONLY the shoulder and elbow of the higher-confidence side
-	
-	Shoulder-Hip Rule: Ensures torso stays upright during curl:
-	- Uses same-side shoulder and hip for consistent measurement
-	- Computes shoulder_hip_offset = |shoulder_x - hip_x| for the selected side only
-	- Triggers if offset exceeds shoulder_hip_threshold + tolerance
-	- Visual feedback highlights ONLY the shoulder and hip of the higher-confidence side
-
-	Features: Focuses on robust, visible-side measurements only:
-	- shoulder_elbow_offset: Single-unit horizontal offset using higher-confidence side only
-	- shoulder_hip_offset: Torso alignment offset using same-side joints
-	- Both features use consistent same-side joint selection for reliability
-
 	Inputs: (batch, 51) flattened keypoints [y, x, conf] * 17
 	Outputs:
 	- form_score: (batch, 1) sigmoid in [0,1]
@@ -70,9 +52,9 @@ class BicepPoseCNN(tf.keras.Model):
 
 		self.biomech_dense = layers.Dense(32, activation='relu', name="biomech_embedding")
 
-		self.fusion_dense1 = layers.Dense(48, activation='relu')  # Reduced from 64
+		self.fusion_dense1 = layers.Dense(48, activation='relu')
 		self.fusion_dropout1 = layers.Dropout(0.3)
-		self.fusion_dense2 = layers.Dense(24, activation='relu')  # Reduced from 32
+		self.fusion_dense2 = layers.Dense(24, activation='relu')
 		self.fusion_dropout2 = layers.Dropout(0.2)
 		self.form_score_output = layers.Dense(1, activation='sigmoid', name='form_score')
 
@@ -82,7 +64,7 @@ class BicepPoseCNN(tf.keras.Model):
 		- Center by mid-hip
 		- Scale by torso height
 		- Apply preprocessing joint mask efficiently
-		Input: (batch, 17, 3) → Output: (batch, 17, 3)
+		Input: (batch, 17, 3) → Output: (batch, 17, 2) - coordinates only for CNN
 		"""
 		xy = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2:3]
@@ -113,32 +95,82 @@ class BicepPoseCNN(tf.keras.Model):
 		torso_height = tf.maximum(torso_height, 1e-6)
 		scaled = centered / torso_height
 
-		processed = tf.concat([scaled, conf], axis=2) * mask
+		# Return only coordinates for CNN (no confidence channel)
+		processed = scaled * mask[:, :, :2]
 
 		return processed
+
+	def _create_normalized_keypoints_with_confidence(self, keypoints: tf.Tensor) -> tf.Tensor:
+		"""
+		Creates normalized keypoints (coordinates) with confidence channel.
+		Input: (batch, 17, 3) - RAW keypoints [y, x, conf]
+		Output: (batch, 17, 3) - Normalized coordinates [y, x, conf]
+		"""
+		xy = keypoints[:, :, :2]
+		conf = keypoints[:, :, 2:3]
+
+		# Joint mask: keep shoulders, elbows, wrists, hips
+		preproc_mask = tf.constant([
+			0, 0, 0,  # nose, eyes
+			0, 0,     # ears
+			1, 1,     # shoulders
+			1, 1,     # elbows
+			1, 1,     # wrists
+			1, 1,     # hips
+			0, 0,     # knees
+			0, 0,     # ankles
+		], dtype=tf.float32)
+		
+		mask = tf.reshape(preproc_mask, (1, self.num_joints, 1))
+		
+		hip_slice = xy[:, 11:13, :] * mask[:, 11:13, :]
+		shoulder_slice = xy[:, 5:7, :] * mask[:, 5:7, :]
+
+		mid_hip = tf.reduce_sum(hip_slice, axis=1, keepdims=True) / 2.0
+		mid_shoulder = tf.reduce_sum(shoulder_slice, axis=1, keepdims=True) / 2.0
+
+		centered = xy - mid_hip
+		torso_vec = mid_shoulder - mid_hip
+		torso_height = tf.norm(torso_vec, axis=2, keepdims=True)
+		torso_height = tf.maximum(torso_height, 1e-6)
+		scaled = centered / torso_height
+
+		# Return normalized coordinates with confidence channel
+		normalized_keypoints = scaled * mask[:, :, :2]
+		normalized_keypoints = tf.concat([normalized_keypoints, conf], axis=-1)
+
+		return normalized_keypoints
 
 	def _raw_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		"""
 		Compute and normalize bicep curl-relevant features for sideways analysis.
 		Returns tensor (batch, 2) with features:
 		[shoulder_elbow_offset_normalized, shoulder_hip_offset_normalized]
-		- shoulder_elbow_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
-		- shoulder_hip_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
 		All operations are vectorized and TFLite-friendly.
 		"""
 		yx = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2]
 
-		# Select side with higher shoulder confidence
-		shoulder_conf = tf.stack([conf[:, 5], conf[:, 6]], axis=1)
-		is_left = tf.cast(shoulder_conf[:, 0] > shoulder_conf[:, 1], tf.float32)
+		# Select side based on higher shoulder confidence
+		left_shoulder_conf = conf[:, 5]
+		right_shoulder_conf = conf[:, 6]
+		is_left = tf.cast(left_shoulder_conf > right_shoulder_conf, tf.float32)
 		is_right = 1.0 - is_left
 
+		# Helper to select same-side joint consistently
+		def pick(side_left_idx: int, side_right_idx: int) -> tf.Tensor:
+			return (yx[:, side_left_idx, :] * is_left[:, None] + 
+					yx[:, side_right_idx, :] * is_right[:, None])
+
+		# Same-side joints
+		shoulder = pick(5, 6)
+		elbow = pick(7, 8)
+		hip = pick(11, 12)
+
 		# Shoulder-elbow offset normalization
-		shoulder_x = tf.stack([yx[:, 5, 1], yx[:, 6, 1]], axis=1)
-		elbow_x = tf.stack([yx[:, 7, 1], yx[:, 8, 1]], axis=1)
-		shoulder_elbow_offsets = tf.abs(shoulder_x - elbow_x)
-		shoulder_elbow_offset = shoulder_elbow_offsets[:, 0] * is_left + shoulder_elbow_offsets[:, 1] * is_right
+		shoulder_x = shoulder[:, 1]
+		elbow_x = elbow[:, 1]
+		shoulder_elbow_offset = tf.abs(shoulder_x - elbow_x)
 		shoulder_elbow_thresh = tf.convert_to_tensor(self.shoulder_elbow_threshold + self.shoulder_elbow_tolerance, dtype=shoulder_elbow_offset.dtype)
 		shoulder_elbow_thresh = tf.maximum(shoulder_elbow_thresh, tf.constant(1e-6, dtype=shoulder_elbow_offset.dtype))
 		shoulder_elbow_excess = tf.maximum(0.0, shoulder_elbow_offset - shoulder_elbow_thresh)
@@ -146,8 +178,6 @@ class BicepPoseCNN(tf.keras.Model):
 		shoulder_elbow_norm = tf.clip_by_value(shoulder_elbow_norm, 0.0, 1.0)
 
 		# Shoulder-hip offset normalization (same-side selection)
-		shoulder = (yx[:, 5, :] * is_left[:, None] + yx[:, 6, :] * is_right[:, None])
-		hip = (yx[:, 11, :] * is_left[:, None] + yx[:, 12, :] * is_right[:, None])
 		shoulder_x_same = shoulder[:, 1]
 		hip_x_same = hip[:, 1]
 		shoulder_hip_offset = tf.abs(shoulder_x_same - hip_x_same)
@@ -251,16 +281,21 @@ class BicepPoseCNN(tf.keras.Model):
 		if inputs.shape[-1] != 51:
 			raise ValueError(f"Expected input shape (..., 51), got {inputs.shape}")
 		
-		x = self.reshape_layer(inputs)
-		x_proc = self.preprocess_keypoints(x)
+		x = self.reshape_layer(inputs)  # (batch, 17, 3) - RAW keypoints with confidence
+		x_proc = self.preprocess_keypoints(x)  # (batch, 17, 2) - Coordinates only for CNN
+		
+		# Create normalized keypoints with confidence for biomechanical features and rules
+		x_normalized = self._create_normalized_keypoints_with_confidence(x)  # (batch, 17, 3) - Normalized + confidence
 
+		# CNN path: uses preprocessed coordinates only
 		c = self.conv1(x_proc); c = self.bn1(c, training=training); c = self.relu1(c)
 		c = self.conv2(c); c = self.bn2(c, training=training); c = self.relu2(c)
 		c = self.conv3(c); c = self.bn3(c, training=training); c = self.relu3(c)
 		c = self.global_pool(c)
 		cnn_embedding = self.cnn_dense(c)
 
-		biomech_embedding = self.compute_engineered_features(x_proc)
+		# Biomechanical features: uses NORMALIZED keypoints (with confidence for side selection)
+		biomech_embedding = self.compute_engineered_features(x_normalized)
 
 		fused = layers.Concatenate()([cnn_embedding, biomech_embedding])
 		fused = self.fusion_dense1(fused); fused = self.fusion_dropout1(fused, training=training)
@@ -268,7 +303,8 @@ class BicepPoseCNN(tf.keras.Model):
 
 		cnn_form_score = self.form_score_output(fused)
 		
-		instruction_id, joint_mask = self._rule_outputs(x_proc)
+		# Rule outputs: uses NORMALIZED keypoints (with confidence for side selection)
+		instruction_id, joint_mask = self._rule_outputs(x_normalized)
 		instruction_id = tf.cast(instruction_id, tf.int32)
 		
 		if training:

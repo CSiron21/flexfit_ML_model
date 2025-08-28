@@ -110,7 +110,9 @@ class BasePoseCNN(tf.keras.Model):
             ba = tf.math.l2_normalize(ba, axis=-1)
             bc = tf.math.l2_normalize(bc, axis=-1)
             cos_angle = tf.reduce_sum(ba * bc, axis=-1)
-            return tf.acos(tf.clip_by_value(cos_angle, -1.0, 1.0))
+            # TFLite-compatible arccos approximation
+            x = tf.clip_by_value(cos_angle, -1.0, 1.0)
+            return tf.constant(3.14159265359 / 2, dtype=tf.float32) - x - (x * x * x) / 6.0 - (x * x * x * x * x) / 40.0
 
         left_knee_angle = joint_angle(xy[:, 11], xy[:, 13], xy[:, 15])
         right_knee_angle = joint_angle(xy[:, 12], xy[:, 14], xy[:, 16])

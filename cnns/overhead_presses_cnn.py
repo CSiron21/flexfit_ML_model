@@ -13,21 +13,6 @@ class OverheadPoseCNN(tf.keras.Model):
 	Overhead Press-focused 1D CNN with engineered biomechanical features and rule-based outputs.
 	Optimized for front-view camera analysis where both sides are independently observable.
 	
-	Elbow Flare Rule: Ensures elbows do not flare outward during press:
-	- Computes horizontal (x-axis) offset between wrist and elbow for each side independently
-	- Triggers if offset exceeds elbow_flare_threshold + tolerance
-	- Visual feedback highlights wrist and elbow on the affected side(s)
-	
-	Wrist Symmetry Rule: Ensures both wrists rise evenly at the same height:
-	- Computes vertical (y-axis) difference between left and right wrists
-	- Triggers if difference exceeds wrist_symmetry_threshold + tolerance
-	- Visual feedback highlights both wrists and elbows
-	
-	Features: Focuses on front-view measurements:
-	- elbow_flare_offset: Horizontal misalignment between wrist and elbow (both sides)
-	- wrist_symmetry_offset: Vertical difference between left and right wrists
-	- Both features use independent side analysis for front-view reliability
-
 	Inputs: (batch, 51) flattened keypoints [y, x, conf] * 17
 	Outputs:
 	- form_score: (batch, 1) sigmoid in [0,1]
@@ -67,9 +52,9 @@ class OverheadPoseCNN(tf.keras.Model):
 
 		self.biomech_dense = layers.Dense(32, activation='relu', name="biomech_embedding")
 
-		self.fusion_dense1 = layers.Dense(48, activation='relu')  # Reduced from 64
+		self.fusion_dense1 = layers.Dense(48, activation='relu')
 		self.fusion_dropout1 = layers.Dropout(0.3)
-		self.fusion_dense2 = layers.Dense(24, activation='relu')  # Reduced from 32
+		self.fusion_dense2 = layers.Dense(24, activation='relu')
 		self.fusion_dropout2 = layers.Dropout(0.2)
 		self.form_score_output = layers.Dense(1, activation='sigmoid', name='form_score')
 
@@ -79,7 +64,7 @@ class OverheadPoseCNN(tf.keras.Model):
 		- Center by mid-hip
 		- Scale by torso height
 		- Apply preprocessing joint mask efficiently
-		Input: (batch, 17, 3) → Output: (batch, 17, 3)
+		Input: (batch, 17, 3) → Output: (batch, 17, 2) - coordinates only for CNN
 		"""
 		xy = keypoints[:, :, :2]
 		conf = keypoints[:, :, 2:3]
@@ -110,17 +95,57 @@ class OverheadPoseCNN(tf.keras.Model):
 		torso_height = tf.maximum(torso_height, 1e-6)
 		scaled = centered / torso_height
 
-		processed = tf.concat([scaled, conf], axis=2) * mask
+		# Return only coordinates for CNN (no confidence channel)
+		processed = scaled * mask[:, :, :2]
 
 		return processed
+
+	def _create_normalized_keypoints_with_confidence(self, keypoints: tf.Tensor) -> tf.Tensor:
+		"""
+		Creates normalized keypoints (coordinates) with confidence channel.
+		Input: (batch, 17, 3) - RAW keypoints [y, x, conf]
+		Output: (batch, 17, 3) - Normalized coordinates [y, x, conf]
+		"""
+		xy = keypoints[:, :, :2]
+		conf = keypoints[:, :, 2:3]
+
+		# Joint mask: keep shoulders, elbows, wrists, hips
+		preproc_mask = tf.constant([
+			0, 0, 0,  # nose, eyes
+			0, 0,     # ears
+			1, 1,     # shoulders
+			1, 1,     # elbows
+			1, 1,     # wrists
+			1, 1,     # hips
+			0, 0,     # knees
+			0, 0,     # ankles
+		], dtype=tf.float32)
+		
+		mask = tf.reshape(preproc_mask, (1, self.num_joints, 1))
+		
+		hip_slice = xy[:, 11:13, :] * mask[:, 11:13, :]
+		shoulder_slice = xy[:, 5:7, :] * mask[:, 5:7, :]
+
+		mid_hip = tf.reduce_sum(hip_slice, axis=1, keepdims=True) / 2.0
+		mid_shoulder = tf.reduce_sum(shoulder_slice, axis=1, keepdims=True) / 2.0
+
+		centered = xy - mid_hip
+		torso_vec = mid_shoulder - mid_hip
+		torso_height = tf.norm(torso_vec, axis=2, keepdims=True)
+		torso_height = tf.maximum(torso_height, 1e-6)
+		scaled = centered / torso_height
+
+		# Return normalized coordinates with confidence channel
+		normalized_keypoints = scaled * mask[:, :, :2]
+		normalized_keypoints = tf.concat([normalized_keypoints, conf], axis=-1)
+
+		return normalized_keypoints
 
 	def _raw_engineered_features(self, keypoints: tf.Tensor) -> tf.Tensor:
 		"""
 		Compute and normalize overhead press-relevant features for front-view analysis.
 		Returns tensor (batch, 2) with features:
 		[elbow_flare_offset_normalized, wrist_symmetry_offset_normalized]
-		- elbow_flare_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
-		- wrist_symmetry_offset_normalized in [0,1], 0 small/none, 1 at/above threshold
 		All operations are vectorized and TFLite-friendly.
 		"""
 		yx = keypoints[:, :, :2]
@@ -210,26 +235,26 @@ class OverheadPoseCNN(tf.keras.Model):
 		# Joint mask for selected instruction
 		one_hot = tf.one_hot(max_deviation_idx, depth=2, dtype=tf.float32)
 		
-		# Mask for elbow flare: highlight wrists and elbows
+		# Mask for elbow flare: highlight elbows, wrists, and shoulders
 		mask_elbow_flare = tf.constant([
-			0,0,0,0,0,  # 0-4 nose, eyes
-			0,0,        # 5-6 ears
-			1,1,        # 7-8 shoulders
-			1,1,        # 9-10 elbows
-			1,1,        # 11-12 wrists
-			0,0,        # 13-14 hips
-			0,0,        # 15-16 knees
+			0,0,0,0,0,  # 0-4 nose, eyes, ears
+			0,0,        # 5-6 shoulders
+			1,1,        # 7-8 elbows
+			1,1,        # 9-10 wrists
+			0,0,        # 11-12 hips
+			0,0,        # 13-14 knees
+			0,0         # 15-16 ankles
 		], dtype=tf.float32)
 		
-		# Mask for wrist symmetry: highlight both wrists and elbows
+		# Mask for wrist symmetry: highlight elbows and wrists
 		mask_wrist_symmetry = tf.constant([
-			0,0,0,0,0,  # 0-4 nose, eyes
-			0,0,        # 5-6 ears
-			0,0,        # 7-8 shoulders
-			1,1,        # 9-10 elbows
-			1,1,        # 11-12 wrists
-			0,0,        # 13-14 hips
-			0,0,        # 15-16 knees
+			0,0,0,0,0,  # 0-4 nose, eyes, ears
+			1,1,        # 5-6 shoulders
+			1,1,        # 7-8 elbows
+			1,1,        # 9-10 wrists
+			0,0,        # 11-12 hips
+			0,0,        # 13-14 knees
+			0,0         # 15-16 ankles
 		], dtype=tf.float32)
 		
 		masks = tf.stack([mask_elbow_flare, mask_wrist_symmetry], axis=0)
@@ -243,16 +268,21 @@ class OverheadPoseCNN(tf.keras.Model):
 		if inputs.shape[-1] != 51:
 			raise ValueError(f"Expected input shape (..., 51), got {inputs.shape}")
 		
-		x = self.reshape_layer(inputs)
-		x_proc = self.preprocess_keypoints(x)
+		x = self.reshape_layer(inputs)  # (batch, 17, 3) - RAW keypoints with confidence
+		x_proc = self.preprocess_keypoints(x)  # (batch, 17, 2) - Coordinates only for CNN
+		
+		# Create normalized keypoints with confidence for biomechanical features and rules
+		x_normalized = self._create_normalized_keypoints_with_confidence(x)  # (batch, 17, 3) - Normalized + confidence
 
+		# CNN path: uses preprocessed coordinates only
 		c = self.conv1(x_proc); c = self.bn1(c, training=training); c = self.relu1(c)
 		c = self.conv2(c); c = self.bn2(c, training=training); c = self.relu2(c)
 		c = self.conv3(c); c = self.bn3(c, training=training); c = self.relu3(c)
 		c = self.global_pool(c)
 		cnn_embedding = self.cnn_dense(c)
 
-		biomech_embedding = self.compute_engineered_features(x_proc)
+		# Biomechanical features: uses NORMALIZED keypoints (with confidence for side selection)
+		biomech_embedding = self.compute_engineered_features(x_normalized)
 
 		fused = layers.Concatenate()([cnn_embedding, biomech_embedding])
 		fused = self.fusion_dense1(fused); fused = self.fusion_dropout1(fused, training=training)
@@ -260,7 +290,8 @@ class OverheadPoseCNN(tf.keras.Model):
 
 		cnn_form_score = self.form_score_output(fused)
 		
-		instruction_id, joint_mask = self._rule_outputs(x_proc)
+		# Rule outputs: uses NORMALIZED keypoints (with confidence for side selection)
+		instruction_id, joint_mask = self._rule_outputs(x_normalized)
 		instruction_id = tf.cast(instruction_id, tf.int32)
 		
 		if training:

@@ -13,12 +13,13 @@ import logging
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'  # Reduce TensorFlow logging for CPU training
 
 # Configuration
-CNN_MODULE = "cnns.overhead_pose_cnn"
-CORRECT_DIR = "keypoints_data/overhead_presses/correct"
-INCORRECT_DIR = "keypoints_data/overhead_presses/incorrect"
-MODEL_SAVE_PATH = "models/overhead_pose_model.keras"
-TFLITE_SAVE_PATH = "models/overhead_pose_float16.tflite"
-TRAINING_LOG_PATH = "training_logs/overhead_pose_training.log"
+EXERCISE = "squats" # Change exercise: (overhead_presses, squats, bicep_curls)
+CNN_MODULE = f"cnns.{EXERCISE}_cnn"
+CORRECT_DIR = f"keypoints_data/{EXERCISE}/correct"
+INCORRECT_DIR = f"keypoints_data/{EXERCISE}/incorrect"
+MODEL_SAVE_PATH = f"models/{EXERCISE}/{EXERCISE}_model.keras"
+TFLITE_SAVE_PATH = f"models/{EXERCISE}/{EXERCISE}_float16.tflite"
+TRAINING_LOG_PATH = f"training_logs/{EXERCISE}_training.log"
 
 # Hyperparameters
 BATCH_SIZE = 32
