@@ -1,0 +1,58 @@
+2025-09-01 18:45:46,313 - INFO - ============================================================
+2025-09-01 18:45:46,313 - INFO - REP-LEVEL FORM SCORING MODEL EVALUATION STARTED
+2025-09-01 18:45:46,313 - INFO - ============================================================
+2025-09-01 18:45:46,314 - INFO - Evaluation timestamp: 2025-09-01 18:45:46
+2025-09-01 18:45:46,314 - INFO - Model path: models\squats\squats_float16.tflite
+2025-09-01 18:45:46,314 - INFO - Data directory: keypoints_data\squats\test
+2025-09-01 18:45:46,314 - INFO - Reps per video: 3
+2025-09-01 18:45:46,314 - INFO - Low score threshold: 0.5
+2025-09-01 18:45:46,314 - INFO - Min low fraction: 0.1
+2025-09-01 18:45:46,314 - INFO - Min low run: 5
+2025-09-01 18:45:46,314 - INFO - ============================================================
+2025-09-01 18:45:46,315 - INFO - Loading TFLite model...
+2025-09-01 18:45:46,317 - INFO - Model loaded successfully.
+2025-09-01 18:45:46,317 - INFO - Starting rep-level evaluation...
+2025-09-01 18:45:46,420 - INFO - === Rep-level results ===
+2025-09-01 18:45:46,421 - INFO - correct_squats_test_1.csv - Rep 1: true=1, pred=1, mean_score=0.870, min_score=0.725, low_fraction=0.000, frames=30
+2025-09-01 18:45:46,421 - INFO - correct_squats_test_1.csv - Rep 2: true=1, pred=1, mean_score=0.872, min_score=0.723, low_fraction=0.000, frames=30
+2025-09-01 18:45:46,421 - INFO - correct_squats_test_1.csv - Rep 3: true=1, pred=1, mean_score=0.870, min_score=0.669, low_fraction=0.000, frames=32
+2025-09-01 18:45:46,421 - INFO - correct_squats_test_2.csv - Rep 1: true=1, pred=1, mean_score=0.710, min_score=0.558, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_2.csv - Rep 2: true=1, pred=1, mean_score=0.733, min_score=0.578, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_2.csv - Rep 3: true=1, pred=1, mean_score=0.738, min_score=0.547, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_3.csv - Rep 1: true=1, pred=1, mean_score=0.693, min_score=0.300, low_fraction=0.059, frames=17
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_3.csv - Rep 2: true=1, pred=1, mean_score=0.728, min_score=0.665, low_fraction=0.000, frames=17
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_3.csv - Rep 3: true=1, pred=0, mean_score=0.701, min_score=0.300, low_fraction=0.158, frames=19
+2025-09-01 18:45:46,422 - INFO - correct_squats_test_4.csv - Rep 1: true=1, pred=1, mean_score=0.710, min_score=0.558, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,423 - INFO - correct_squats_test_4.csv - Rep 2: true=1, pred=1, mean_score=0.733, min_score=0.578, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,423 - INFO - correct_squats_test_4.csv - Rep 3: true=1, pred=1, mean_score=0.738, min_score=0.547, low_fraction=0.000, frames=28
+2025-09-01 18:45:46,423 - INFO - correct_squats_test_5.csv - Rep 1: true=1, pred=1, mean_score=0.846, min_score=0.594, low_fraction=0.000, frames=25
+2025-09-01 18:45:46,423 - INFO - correct_squats_test_5.csv - Rep 2: true=1, pred=1, mean_score=0.828, min_score=0.485, low_fraction=0.040, frames=25
+2025-09-01 18:45:46,423 - INFO - correct_squats_test_5.csv - Rep 3: true=1, pred=0, mean_score=0.811, min_score=0.434, low_fraction=0.200, frames=25
+2025-09-01 18:45:46,424 - INFO - incorrect_squats_test_1.csv - Rep 1: true=0, pred=1, mean_score=0.776, min_score=0.665, low_fraction=0.000, frames=26
+2025-09-01 18:45:46,424 - INFO - incorrect_squats_test_1.csv - Rep 2: true=0, pred=0, mean_score=0.701, min_score=0.359, low_fraction=0.346, frames=26
+2025-09-01 18:45:46,424 - INFO - incorrect_squats_test_1.csv - Rep 3: true=0, pred=0, mean_score=0.734, min_score=0.427, low_fraction=0.148, frames=27
+2025-09-01 18:45:46,424 - INFO - incorrect_squats_test_2.csv - Rep 1: true=0, pred=0, mean_score=0.728, min_score=0.343, low_fraction=0.269, frames=26
+2025-09-01 18:45:46,425 - INFO - incorrect_squats_test_2.csv - Rep 2: true=0, pred=0, mean_score=0.724, min_score=0.337, low_fraction=0.231, frames=26
+2025-09-01 18:45:46,425 - INFO - incorrect_squats_test_2.csv - Rep 3: true=0, pred=1, mean_score=0.798, min_score=0.403, low_fraction=0.038, frames=26
+2025-09-01 18:45:46,425 - INFO - incorrect_squats_test_3.csv - Rep 1: true=0, pred=0, mean_score=0.716, min_score=0.342, low_fraction=0.271, frames=70
+2025-09-01 18:45:46,425 - INFO - incorrect_squats_test_3.csv - Rep 2: true=0, pred=0, mean_score=0.779, min_score=0.333, low_fraction=0.071, frames=70
+2025-09-01 18:45:46,426 - INFO - incorrect_squats_test_3.csv - Rep 3: true=0, pred=0, mean_score=0.717, min_score=0.343, low_fraction=0.141, frames=71
+2025-09-01 18:45:46,426 - INFO - incorrect_squats_test_4.csv - Rep 1: true=0, pred=0, mean_score=0.716, min_score=0.342, low_fraction=0.271, frames=70
+2025-09-01 18:45:46,426 - INFO - incorrect_squats_test_4.csv - Rep 2: true=0, pred=0, mean_score=0.779, min_score=0.333, low_fraction=0.071, frames=70
+2025-09-01 18:45:46,426 - INFO - incorrect_squats_test_4.csv - Rep 3: true=0, pred=0, mean_score=0.717, min_score=0.343, low_fraction=0.141, frames=71
+2025-09-01 18:45:46,427 - INFO - incorrect_squats_test_5.csv - Rep 1: true=0, pred=0, mean_score=0.532, min_score=0.337, low_fraction=0.556, frames=18
+2025-09-01 18:45:46,427 - INFO - incorrect_squats_test_5.csv - Rep 2: true=0, pred=0, mean_score=0.606, min_score=0.350, low_fraction=0.389, frames=18
+2025-09-01 18:45:46,427 - INFO - incorrect_squats_test_5.csv - Rep 3: true=0, pred=0, mean_score=0.486, min_score=0.345, low_fraction=0.667, frames=18
+2025-09-01 18:45:46,427 - INFO - === Rep-level metrics ===
+2025-09-01 18:45:46,427 - INFO - Precision: 0.867
+2025-09-01 18:45:46,427 - INFO - Recall:    0.867
+2025-09-01 18:45:46,427 - INFO - F1-score:  0.867
+2025-09-01 18:45:46,428 - INFO - Accuracy:  0.867
+2025-09-01 18:45:46,428 - INFO - Total reps evaluated: 30
+2025-09-01 18:45:46,436 - INFO - ============================================================
+2025-09-01 18:45:46,436 - INFO - REP-LEVEL EVALUATION COMPLETED SUCCESSFULLY
+2025-09-01 18:45:46,436 - INFO - ============================================================
+2025-09-01 18:45:46,437 - INFO - Results saved to: inference_logs\squats_rep_evaluation.log
+2025-09-01 18:45:46,437 - INFO - Total reps evaluated: 30
+2025-09-01 18:45:46,437 - INFO - Rep-level accuracy: 0.867
+2025-09-01 18:45:46,437 - INFO - ============================================================

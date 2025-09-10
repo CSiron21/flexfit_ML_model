@@ -1,0 +1,58 @@
+2025-09-01 18:46:02,244 - INFO - ============================================================
+2025-09-01 18:46:02,244 - INFO - REP-LEVEL FORM SCORING MODEL EVALUATION STARTED
+2025-09-01 18:46:02,244 - INFO - ============================================================
+2025-09-01 18:46:02,244 - INFO - Evaluation timestamp: 2025-09-01 18:46:02
+2025-09-01 18:46:02,244 - INFO - Model path: models\overhead_presses\overhead_presses_float16.tflite
+2025-09-01 18:46:02,245 - INFO - Data directory: keypoints_data\overhead_presses\test
+2025-09-01 18:46:02,245 - INFO - Reps per video: 3
+2025-09-01 18:46:02,245 - INFO - Low score threshold: 0.5
+2025-09-01 18:46:02,245 - INFO - Min low fraction: 0.1
+2025-09-01 18:46:02,245 - INFO - Min low run: 5
+2025-09-01 18:46:02,245 - INFO - ============================================================
+2025-09-01 18:46:02,245 - INFO - Loading TFLite model...
+2025-09-01 18:46:02,248 - INFO - Model loaded successfully.
+2025-09-01 18:46:02,248 - INFO - Starting rep-level evaluation...
+2025-09-01 18:46:02,306 - INFO - === Rep-level results ===
+2025-09-01 18:46:02,307 - INFO - correct_overhead_presses_test_1.csv - Rep 1: true=1, pred=1, mean_score=0.945, min_score=0.697, low_fraction=0.000, frames=24
+2025-09-01 18:46:02,307 - INFO - correct_overhead_presses_test_1.csv - Rep 2: true=1, pred=1, mean_score=0.945, min_score=0.692, low_fraction=0.000, frames=24
+2025-09-01 18:46:02,307 - INFO - correct_overhead_presses_test_1.csv - Rep 3: true=1, pred=1, mean_score=0.915, min_score=0.691, low_fraction=0.000, frames=25
+2025-09-01 18:46:02,308 - INFO - correct_overhead_presses_test_2.csv - Rep 1: true=1, pred=1, mean_score=0.795, min_score=0.700, low_fraction=0.000, frames=33
+2025-09-01 18:46:02,308 - INFO - correct_overhead_presses_test_2.csv - Rep 2: true=1, pred=1, mean_score=0.811, min_score=0.728, low_fraction=0.000, frames=33
+2025-09-01 18:46:02,308 - INFO - correct_overhead_presses_test_2.csv - Rep 3: true=1, pred=1, mean_score=0.822, min_score=0.736, low_fraction=0.000, frames=34
+2025-09-01 18:46:02,308 - INFO - correct_overhead_presses_test_3.csv - Rep 1: true=1, pred=1, mean_score=0.720, min_score=0.698, low_fraction=0.000, frames=13
+2025-09-01 18:46:02,308 - INFO - correct_overhead_presses_test_3.csv - Rep 2: true=1, pred=0, mean_score=0.585, min_score=0.301, low_fraction=0.462, frames=13
+2025-09-01 18:46:02,309 - INFO - correct_overhead_presses_test_3.csv - Rep 3: true=1, pred=0, mean_score=0.639, min_score=0.304, low_fraction=0.154, frames=13
+2025-09-01 18:46:02,309 - INFO - correct_overhead_presses_test_4.csv - Rep 1: true=1, pred=1, mean_score=0.695, min_score=0.327, low_fraction=0.074, frames=27
+2025-09-01 18:46:02,309 - INFO - correct_overhead_presses_test_4.csv - Rep 2: true=1, pred=1, mean_score=0.747, min_score=0.682, low_fraction=0.000, frames=27
+2025-09-01 18:46:02,309 - INFO - correct_overhead_presses_test_4.csv - Rep 3: true=1, pred=1, mean_score=0.767, min_score=0.686, low_fraction=0.000, frames=27
+2025-09-01 18:46:02,309 - INFO - correct_overhead_presses_test_5.csv - Rep 1: true=1, pred=1, mean_score=0.936, min_score=0.734, low_fraction=0.000, frames=21
+2025-09-01 18:46:02,310 - INFO - correct_overhead_presses_test_5.csv - Rep 2: true=1, pred=1, mean_score=0.913, min_score=0.691, low_fraction=0.000, frames=21
+2025-09-01 18:46:02,310 - INFO - correct_overhead_presses_test_5.csv - Rep 3: true=1, pred=1, mean_score=0.888, min_score=0.700, low_fraction=0.000, frames=22
+2025-09-01 18:46:02,310 - INFO - incorrect_overhead_presses_test_1.csv - Rep 1: true=0, pred=0, mean_score=0.615, min_score=0.311, low_fraction=0.250, frames=28
+2025-09-01 18:46:02,310 - INFO - incorrect_overhead_presses_test_1.csv - Rep 2: true=0, pred=0, mean_score=0.598, min_score=0.306, low_fraction=0.357, frames=28
+2025-09-01 18:46:02,310 - INFO - incorrect_overhead_presses_test_1.csv - Rep 3: true=0, pred=0, mean_score=0.613, min_score=0.316, low_fraction=0.276, frames=29
+2025-09-01 18:46:02,311 - INFO - incorrect_overhead_presses_test_2.csv - Rep 1: true=0, pred=0, mean_score=0.615, min_score=0.311, low_fraction=0.250, frames=28
+2025-09-01 18:46:02,311 - INFO - incorrect_overhead_presses_test_2.csv - Rep 2: true=0, pred=0, mean_score=0.598, min_score=0.306, low_fraction=0.357, frames=28
+2025-09-01 18:46:02,311 - INFO - incorrect_overhead_presses_test_2.csv - Rep 3: true=0, pred=0, mean_score=0.613, min_score=0.316, low_fraction=0.276, frames=29
+2025-09-01 18:46:02,311 - INFO - incorrect_overhead_presses_test_3.csv - Rep 1: true=0, pred=0, mean_score=0.610, min_score=0.300, low_fraction=0.375, frames=16
+2025-09-01 18:46:02,311 - INFO - incorrect_overhead_presses_test_3.csv - Rep 2: true=0, pred=0, mean_score=0.694, min_score=0.300, low_fraction=0.250, frames=16
+2025-09-01 18:46:02,312 - INFO - incorrect_overhead_presses_test_3.csv - Rep 3: true=0, pred=0, mean_score=0.697, min_score=0.301, low_fraction=0.312, frames=16
+2025-09-01 18:46:02,312 - INFO - incorrect_overhead_presses_test_4.csv - Rep 1: true=0, pred=0, mean_score=0.615, min_score=0.311, low_fraction=0.250, frames=28
+2025-09-01 18:46:02,312 - INFO - incorrect_overhead_presses_test_4.csv - Rep 2: true=0, pred=0, mean_score=0.598, min_score=0.306, low_fraction=0.357, frames=28
+2025-09-01 18:46:02,312 - INFO - incorrect_overhead_presses_test_4.csv - Rep 3: true=0, pred=0, mean_score=0.613, min_score=0.316, low_fraction=0.276, frames=29
+2025-09-01 18:46:02,312 - INFO - incorrect_overhead_presses_test_5.csv - Rep 1: true=0, pred=0, mean_score=0.610, min_score=0.300, low_fraction=0.375, frames=16
+2025-09-01 18:46:02,313 - INFO - incorrect_overhead_presses_test_5.csv - Rep 2: true=0, pred=0, mean_score=0.694, min_score=0.300, low_fraction=0.250, frames=16
+2025-09-01 18:46:02,313 - INFO - incorrect_overhead_presses_test_5.csv - Rep 3: true=0, pred=0, mean_score=0.697, min_score=0.301, low_fraction=0.312, frames=16
+2025-09-01 18:46:02,313 - INFO - === Rep-level metrics ===
+2025-09-01 18:46:02,313 - INFO - Precision: 1.000
+2025-09-01 18:46:02,313 - INFO - Recall:    0.867
+2025-09-01 18:46:02,313 - INFO - F1-score:  0.929
+2025-09-01 18:46:02,314 - INFO - Accuracy:  0.933
+2025-09-01 18:46:02,314 - INFO - Total reps evaluated: 30
+2025-09-01 18:46:02,323 - INFO - ============================================================
+2025-09-01 18:46:02,323 - INFO - REP-LEVEL EVALUATION COMPLETED SUCCESSFULLY
+2025-09-01 18:46:02,323 - INFO - ============================================================
+2025-09-01 18:46:02,323 - INFO - Results saved to: inference_logs\overhead_presses_rep_evaluation.log
+2025-09-01 18:46:02,323 - INFO - Total reps evaluated: 30
+2025-09-01 18:46:02,323 - INFO - Rep-level accuracy: 0.933
+2025-09-01 18:46:02,324 - INFO - ============================================================
